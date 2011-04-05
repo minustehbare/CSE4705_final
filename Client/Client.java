@@ -130,4 +130,16 @@ public class Client {
             throw new ClientException("General IO failure");
         }
     }
+
+    public void Disconnect() {
+        _state = ClientState.Disconnected;
+        try {
+            _inStream.close();
+            _outStream.close();
+            _socket.close();
+        } catch (IOException e) {
+            // There's really no reason to throw an exception.
+            // What could possibly be done?
+        }
+    }
 }
