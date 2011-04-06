@@ -1,0 +1,12 @@
+###########################
+Client which picks randomly
+from all available moves.
+Not the prettiest code, but
+its tested and works.
+
+To run:
+Compile all three clases.
+I use %javac RandomClient.java
+run RandomClient
+I use %java RandomClient
+
