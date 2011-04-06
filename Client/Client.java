@@ -6,6 +6,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Calendar;
+import java.text.SimpleDateFormat;
 
 public class Client {
 
@@ -17,6 +19,10 @@ public class Client {
     private BufferedReader _inStream;
     private PrintWriter _outStream;
 
+    private StringBuilder _log;
+    private boolean _enableLog;
+    private SimpleDateFormat _sdf;
+
     public Client() {
         _state = ClientState.Fresh;
     }
@@ -25,15 +31,52 @@ public class Client {
     public boolean isBlack() { return _isBlack; }
     public int getGameID() { return _gameID; }
 
+    private void _logMessage(String msg) {
+        if (_enableLog) {
+            _log.append(_sdf.format(Calendar.getInstance()));
+            _log.append(msg);
+            _log.append("\n");
+        }
+    }
+
+    public void enableLog() {
+        _enableLog = true;
+        if (_sdf == null) {
+            _sdf = new SimpleDateFormat("[yyyy-MM-dd kk:mm:ss.SSS] ");
+        }
+        _logMessage("Enabled log.");
+    }
+
+    public void disableLog() {
+        _logMessage("Disabled log.");
+        _enableLog = false;
+    }
+
+    public String getLog() { return _log.toString(); }
+
+    private String _readLine()
+            throws IOException {
+        String in = _inStream.readLine();
+        _logMessage("RECV: " + in);
+        return in;
+    }
+
+    private void _writeLine(String str) {
+        _logMessage("SEND: " + str);
+        _outStream.write(str + "\r\n");
+        _outStream.flush();
+    }
+
     public void Connect(String serverHost, int port)
             throws ClientException {
+        _logMessage("Attempting to connect to \"" + serverHost + "\" on port " + port);
         _state = ClientState.Connecting;
         try {
             _socket = new Socket(serverHost, port);
             _outStream = new PrintWriter(_socket.getOutputStream(), true);
             _inStream = new BufferedReader(new InputStreamReader(_socket.getInputStream()));
             // Eat a line of input, which should be "THESEUS v0.1"
-            _inStream.readLine();
+            _readLine();
             _state = ClientState.Connected;
         } catch (UnknownHostException e) {
             _state = ClientState.Error;
@@ -49,28 +92,25 @@ public class Client {
         _state = ClientState.Authenticating;
         try {
             // Read the username prompt.
-            _inStream.readLine();
+            _readLine();
             // Write the username.
-            _outStream.print(userID + "\r\n");
-            _outStream.flush();
+            _writeLine(userID);
             // Read the password prompt.
-            _inStream.readLine();
+            _readLine();
             // Write the password.
-            _outStream.print(password + "\r\n");
-            _outStream.flush();
+            _writeLine(password);
             _state = ClientState.Authenticated;
             // Read the opponent prompt
-            _inStream.readLine();
+            _readLine();
             // Write the opponent.
-            _outStream.print(opponent + "\r\n");
-            _outStream.flush();
+            _writeLine(opponent);
             _state = ClientState.Matching;
             // Wait for a response.
-            String matchResponse = _inStream.readLine();
+            String matchResponse = _readLine();
             // Set the gameID.
             _gameID = Integer.parseInt(matchResponse.substring(5));
             // Get the player's color.
-            matchResponse = _inStream.readLine();
+            matchResponse = _readLine();
             _isBlack = matchResponse.equals("Color:Black");
             _state = ClientState.Matched;
         } catch (IOException e) {
@@ -93,7 +133,7 @@ public class Client {
         // scenario.
         try {
             while (true) {
-                String prompt = _inStream.readLine();
+                String prompt = _readLine();
                 if (prompt.startsWith("Result")) {
                     // Someone won!
                     _state = ClientState.Ended;
@@ -109,10 +149,9 @@ public class Client {
                             prompt.substring(6,prompt.length() - 2));
                     ClientMove move = impl.getMove(secondsLeft);
                     // Write the move.
-                    _outStream.write(move.getSendingPrintout());
-                    _outStream.flush();
+                    _writeLine(move.getSendingPrintout());
                     // Eat the echo.
-                    _inStream.readLine();
+                    _readLine();
                     // Set state to waiting.
                     _state = ClientState.Waiting;
                 } else if (prompt.startsWith("Move")) {
