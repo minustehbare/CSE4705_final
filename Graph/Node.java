@@ -9,5 +9,4 @@ public class Node{
     y=_y;
     isMarked=false;
   }
-  
 }
