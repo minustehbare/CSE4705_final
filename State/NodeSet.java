@@ -276,6 +276,65 @@ public class NodeSet {
     }
 
     /**
+     * Helper method for printGen.  Converts a NodeState into a human-readable
+     * character.
+     *
+     * @param s the node state
+     * @return a character representation of the state
+     */
+    private char stateToChar(NodeState s) {
+        switch (s) {
+            case BLACK:
+                return 'B';
+            case WHITE:
+                return 'W';
+            case BLOCKED:
+                return 'X';
+            default:
+                return ' ';
+        }
+    }
+
+    /**
+     * Creates a human-readable printout of a generation.  This printout is a
+     * Unicode string, using box drawing characters to draw the board.  Note
+     * that this string has no leading or trailing newlines.
+     * 
+     * @param generation the generation to print out
+     * @return a string containing the printout
+     */
+    public String printGen(int generation) {
+        // Get the nodes.
+        // TODO - factor this out.
+        List<NodeState> nodes = new ArrayList<NodeState>();
+        for (int i = 0; i <= 99; i++) {
+            nodes.add(i, getNodeState(i % 10, i / 10, generation));
+        }
+        // create a string - initialize to the top.
+        StringBuilder printout = new StringBuilder("┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐\n");
+        // For each row form i=0 to i=9...
+        for (int i = 0; i <= 9; i++) {
+            // Print out the first liner.
+            printout.append('│');
+            // Now, for each column from j=0 to j=9...
+            for (int j = 0; j <= 9; j++) {
+                // Print out the column and a liner.
+                printout.append(stateToChar(nodes.get(getIndex(i,j))));
+                printout.append('│');
+            }
+            // Include the newline!
+            printout.append('\n');
+            // If this is not the last row (i=9), print out a filler row.
+            if (i < 9) {
+                printout.append("├─┼─┼─┼─┼─┼─┼─┼─┼─┼─┤\n");
+            }
+        }
+        // Include the last row.
+        printout.append("└─┴─┴─┴─┴─┴─┴─┴─┴─┴─┘");
+        return printout.toString();
+    }
+
+    /**
      * Initializes the board to the beginning of a game.  The BLACK and WHITE
      * positions are switched if the parameter is true.
      *
