@@ -254,7 +254,6 @@ public class Client {
                 // we go first - set state to Moving.
                 _state = ClientState.Moving;
             }
-            impl.initialize();
             // NOTE:  This infinite loop must terminate by returning in a winning
             // scenario.
             try {
