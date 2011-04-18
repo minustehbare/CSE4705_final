@@ -10,12 +10,6 @@ package CSE4705_final.Client;
 public interface ClientInterface {
 
     /***
-     * Perform any initialization for the AI.  This method is invoked before the
-     * interface is used for the first time.
-     */
-    void initialize();
-
-    /***
      * Register an opponent's move.  This method is invoked whenever the opponent
      * makes a move.  It is the AI's responsibility to take this information and
      * keep track of the current state of the game.
