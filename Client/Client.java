@@ -263,8 +263,10 @@ public class Client {
                         // Someone won!
                         _state = ClientState.Ended;
                         if (prompt.endsWith("Black")) {
+                            Disconnect();
                             return _isBlack;
                         } else {
+                            Disconnect();
                             return !_isBlack;
                         }
                     } else if (prompt.startsWith("?Move")) {
@@ -285,15 +287,18 @@ public class Client {
                         impl.opponentMove(move);
                         _state = ClientState.Moving;
                     } else if (prompt.startsWith("Error")) {
+                        Disconnect();
                         _state = ClientState.Error;
                         throw new ClientException(prompt);
                     }
                 }
             } catch (IOException e) {
+                Disconnect();
                 _state = ClientState.Error;
                 throw new ClientException("General IO failure");
             }
         } else {
+            Disconnect();
             throw new ClientException("Attempted to call Play() when state wasn't Matched.");
         }
     }
@@ -303,7 +308,7 @@ public class Client {
      * stream with the Amazons server.  If an IOException occurs, the exception
      * is sunk, because nothing can be done about it.
      */
-    public void Disconnect() {
+    private void Disconnect() {
         if (_state == ClientState.Ended) {
             _state = ClientState.Disconnected;
             try {
