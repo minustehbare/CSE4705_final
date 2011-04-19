@@ -146,11 +146,16 @@ public class NodeSet {
     public NodeState getNodeState(int index, int generation) {
         // Get the node map.
         Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
+        GenTreeNode genNode;
         // Get the most relevant node.
         try {
             genReadLock();
-            GenTreeNode genNode = _genMap.get(generation);
+            genNode = _genMap.get(generation);
+        } finally {
             genReadUnlock();
+        }
+
+        try {
             nodeReadLock(index);
             NodeState ret = null;
             {
@@ -165,13 +170,11 @@ public class NodeSet {
                     }
                 }
             }
-            nodeReadUnlock(index);
             return ret;
         } catch (StateException e) {
             throw new StateException("Node at (" +
                     index +")[" + generation + "] was not found.", e);
         } finally {
-            genReadUnlock();
             nodeReadUnlock(index);
         }
     }
@@ -216,14 +219,18 @@ public class NodeSet {
      * @return all partitions that exist in the given generation
      */
     public Set<Partition> getPartitions(int generation) {
+        GenTreeNode curNode;
         try {
             // Get the generation node.
             genReadLock();
-            GenTreeNode curNode = _genMap.get(generation);
+            curNode = _genMap.get(generation);
+        } finally {
             genReadUnlock();
-            // Initialize the return set and blacklist.
-            Set<Partition> retSet = new HashSet();
-            Set<Partition> blacklist = new HashSet();
+        }
+        // Initialize the return set and blacklist.
+        Set<Partition> retSet = new HashSet();
+        Set<Partition> blacklist = new HashSet();
+        try {
             // Take out a lock on the modification map.
             partGenReadLock();
             // Add "added" to retSet if they are not blacklisted.
@@ -243,11 +250,9 @@ public class NodeSet {
                 blacklist.addAll(_partGenMap.get(curNode.getGeneration()).getRemoved());
                 curNode = curNode.getParent();
             }
-            partGenReadUnlock();
             // Return the set of partitions.
             return retSet;
         } finally {
-            genReadUnlock();
             partGenReadUnlock();
         }
     }
@@ -265,20 +270,21 @@ public class NodeSet {
      */
     public int forkNode(int row, int col, int parentGen, NodeState newState) {
         int index = Node.getIndex(row, col);
+        int newGen = _nextGen.getAndIncrement();
         try {
-            int newGen = _nextGen.getAndIncrement();
             // make a new entry in the generation tree.
             genWriteLock();
             _genMap.put(newGen, new GenTreeNode(newGen, _genMap.get(parentGen)));
-            genWriteUnlock();
-            // make a new entry in the node map
-            Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
-            nodeWriteLock(index);
-            nodeMap.put(newGen, newState);
-            nodeWriteUnlock(index);
-            return newGen;
         } finally {
             genWriteUnlock();
+        }
+        // make a new entry in the node map
+        Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
+        try {
+            nodeWriteLock(index);
+            nodeMap.put(newGen, newState);
+            return newGen;
+        } finally {
             nodeWriteUnlock(index);
         }
     }
