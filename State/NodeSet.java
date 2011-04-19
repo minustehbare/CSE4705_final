@@ -41,6 +41,10 @@ public class NodeSet {
      */
     private Map<Integer, GenTreeNode> _genMap;
 
+    /**
+     * A map that links a generation to the partition modifications made during
+     * that generation.
+     */
     private Map<Integer, PartitionModification> _partGenMap;
 
     // Some read-write locks to make this thread-safe.
@@ -130,6 +134,15 @@ public class NodeSet {
     private void partGenWriteLock()   { _partGenLock.writeLock().lock();   }
     private void partGenWriteUnlock() { _partGenLock.writeLock().unlock(); }
 
+    /**
+     * Gets the state of a node.  The generation must be provided.  This method
+     * must potentially search through the generation hierarchy, for a worst-
+     * case runtime of O(d), where d is the depth of the generation tree.
+     *
+     * @param index the direct index of the queried node (between 0 and 99)
+     * @param generation the generation to query
+     * @return the state of the queried node
+     */
     public NodeState getNodeState(int index, int generation) {
         // Get the node map.
         Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
@@ -193,6 +206,15 @@ public class NodeSet {
         return new Node(row, col, getNodeState(row, col, generation), generation);
     }
 
+    /**
+     * Gets a set of partitions from a specific generation.  This method relies
+     * on the partitions being already available.  This method must always
+     * iterate through the entire generation branch, otherwise it may miss a
+     * partition that has not been modified since the beginning.
+     *
+     * @param generation the generation to query
+     * @return all partitions that exist in the given generation
+     */
     public Set<Partition> getPartitions(int generation) {
         try {
             // Get the generation node.
@@ -321,6 +343,12 @@ public class NodeSet {
         }
     }
 
+    /**
+     * Initializes the board to a predetermined set of nodes.  This is only used
+     * when isolating a generation.
+     *
+     * @param init the initialization states
+     */
     private void initializeBoard(List<NodeState> init) {
         _genMap.put(0, new GenTreeNode(0));
         for (int i = 0; i <= 99; i++) {
@@ -394,6 +422,10 @@ public class NodeSet {
         }
     }
 
+    /**
+     * A representation of a partition modification.  Some partitions may be
+     * deleted (split) while new ones are added.
+     */
     private class PartitionModification {
         private final List<Partition> _removed;
         private final List<Partition> _added;
@@ -496,25 +528,4 @@ public class NodeSet {
         printout.append("└─┴─┴─┴─┴─┴─┴─┴─┴─┴─┘");
         return printout.toString();
     }
-
-    /*
-     * TODO: Implement these later.  Their implementation may be moved to the
-     * partition level.
-     * 
-    public List<ClientMove> getAllLegalMoves() {
-        List<ClientMove> retList = new ArrayList<ClientMove>();
-        retList.addAll(getLegalMoves(true));
-        retList.addAll(getLegalMoves(false));
-        return retList;
-    }
-
-    public List<ClientMove> getLegalMoves(boolean forWhite) {
-        
-    }
-
-    public List<ClientMove> getLegalMoves(int row, int col) {
-        
-    }
-     *
-     */
 }

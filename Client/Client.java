@@ -19,8 +19,7 @@ import java.text.SimpleDateFormat;
  * Next, LoginAndMatch() is called to authenticate the client and choose an
  * opponent.  After this, Play() is called and handed an object that implements
  * the ClientInterface interface.  It is through this object that the client plays
- * the game.  Finally, Disconnect() should be called to properly close the
- * network connection.</p>
+ * the game.</p>
  *
  * <p>Typically, all four of these methods would be called from the same block of
  * code.</p>
