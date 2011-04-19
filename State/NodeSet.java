@@ -3,8 +3,8 @@ package CSE4705_final.State;
 import CSE4705_final.Client.*;
 
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
-import java.util.concurrent.locks.*;
 
 /**
  * <p>An efficient collection of board nodes.  This collection is efficient and
@@ -47,11 +47,6 @@ public class NodeSet {
      */
     private Map<Integer, PartitionModification> _partGenMap;
 
-    // Some read-write locks to make this thread-safe.
-    private ReentrantReadWriteLock[] _nodeLocks;
-    private ReentrantReadWriteLock _genLock;
-    private ReentrantReadWriteLock _partGenLock;
-
     // A thread-safe counter to increment the generation number.
     private AtomicInteger _nextGen;
 
@@ -61,17 +56,8 @@ public class NodeSet {
      */
     private void commonInitialization() {
         _nodeMaps = new ArrayList<Map<Integer, NodeState>>(100);
-        _genMap = new TreeMap<Integer, GenTreeNode>();
-        _partGenMap = new HashMap<Integer, PartitionModification>();
-
-        _nodeLocks = new ReentrantReadWriteLock[100];
-        _genLock = new ReentrantReadWriteLock();
-        _partGenLock = new ReentrantReadWriteLock();
-
-        // instantiate all node locks.
-        for (int i = 0; i <= 99; i++) {
-            _nodeLocks[i] = new ReentrantReadWriteLock();
-        }
+        _genMap = new ConcurrentHashMap<Integer, GenTreeNode>();
+        _partGenMap = new ConcurrentHashMap<Integer, PartitionModification>();
 
         _nextGen = new AtomicInteger(1);
     }
@@ -116,24 +102,6 @@ public class NodeSet {
         initializeBoard(init);
     }
 
-    // Helper functions to interact with the _genMap lock.
-    private void genReadLock()    { _genLock.readLock().lock();    }
-    private void genReadUnlock()  { _genLock.readLock().unlock();  }
-    private void genWriteLock()   { _genLock.writeLock().lock();   }
-    private void genWriteUnlock() { _genLock.writeLock().unlock(); }
-
-    // Helper functions to interact with the _nodeMaps locks.
-    private void nodeReadLock(int index)    { _nodeLocks[index].readLock().lock();    }
-    private void nodeReadUnlock(int index)  { _nodeLocks[index].readLock().unlock();  }
-    private void nodeWriteLock(int index)   { _nodeLocks[index].writeLock().lock();   }
-    private void nodeWriteUnlock(int index) { _nodeLocks[index].writeLock().unlock(); }
-
-    // Helper functions to interact with the _partGenMap lock.
-    private void partGenReadLock()    { _partGenLock.readLock().lock();    }
-    private void partGenReadUnlock()  { _partGenLock.readLock().unlock();  }
-    private void partGenWriteLock()   { _partGenLock.writeLock().lock();   }
-    private void partGenWriteUnlock() { _partGenLock.writeLock().unlock(); }
-
     /**
      * Gets the state of a node.  The generation must be provided.  This method
      * must potentially search through the generation hierarchy, for a worst-
@@ -145,22 +113,16 @@ public class NodeSet {
      * @return the state of the queried node
      */
     public NodeState getNodeState(int index, int generation, boolean cache) {
-        final int cacheCutoff = 50;
+        final int cacheCutoff = 10;
         // Get the node map.
         Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
         GenTreeNode genNode;
         // Get the most relevant node.
-        try {
-            genReadLock();
-            genNode = _genMap.get(generation);
-        } finally {
-            genReadUnlock();
-        }
+        genNode = _genMap.get(generation);
 
         NodeState ret = null;
         int canCache = 0;
         try {
-            nodeReadLock(index);
             if (nodeMap.containsKey(generation)) {
                 ret = nodeMap.get(generation);
             } else if (genNode.isRoot()) {
@@ -182,16 +144,9 @@ public class NodeSet {
         } catch (StateException e) {
             throw new StateException("Node at (" +
                     index +")[" + generation + "] was not found.", e);
-        } finally {
-            nodeReadUnlock(index);
         }
         if (cache && canCache > cacheCutoff) {
-            try {
-                nodeWriteLock(index);
-                nodeMap.put(generation, ret);
-            } finally {
-                nodeWriteUnlock(index);
-            }
+            nodeMap.put(generation, ret);
         }
         return ret;
     }
@@ -238,42 +193,30 @@ public class NodeSet {
      * @return all partitions that exist in the given generation
      */
     public Set<Partition> getPartitions(int generation) {
-        GenTreeNode curNode;
-        try {
-            // Get the generation node.
-            genReadLock();
-            curNode = _genMap.get(generation);
-        } finally {
-            genReadUnlock();
-        }
+        // Get the generation node.
+        GenTreeNode curNode = _genMap.get(generation);
         // Initialize the return set and blacklist.
         Set<Partition> retSet = new HashSet();
         Set<Partition> blacklist = new HashSet();
-        try {
-            // Take out a lock on the modification map.
-            partGenReadLock();
-            // Add "added" to retSet if they are not blacklisted.
+        // Add "added" to retSet if they are not blacklisted.
+        for (Partition p : _partGenMap.get(curNode.getGeneration()).getAdded()) {
+            if (!blacklist.contains(p)) {
+                retSet.add(p);
+            }
+        }
+        blacklist.addAll(_partGenMap.get(curNode.getGeneration()).getRemoved());
+        // Repeat until we hit a root node!
+        while (!curNode.isRoot()) {
             for (Partition p : _partGenMap.get(curNode.getGeneration()).getAdded()) {
                 if (!blacklist.contains(p)) {
                     retSet.add(p);
                 }
             }
             blacklist.addAll(_partGenMap.get(curNode.getGeneration()).getRemoved());
-            // Repeat until we hit a root node!
-            while (!curNode.isRoot()) {
-                for (Partition p : _partGenMap.get(curNode.getGeneration()).getAdded()) {
-                    if (!blacklist.contains(p)) {
-                        retSet.add(p);
-                    }
-                }
-                blacklist.addAll(_partGenMap.get(curNode.getGeneration()).getRemoved());
-                curNode = curNode.getParent();
-            }
-            // Return the set of partitions.
-            return retSet;
-        } finally {
-            partGenReadUnlock();
+            curNode = curNode.getParent();
         }
+        // Return the set of partitions.
+        return retSet;
     }
 
     /**
@@ -290,22 +233,12 @@ public class NodeSet {
     public int forkNode(int row, int col, int parentGen, NodeState newState) {
         int index = Node.getIndex(row, col);
         int newGen = _nextGen.getAndIncrement();
-        try {
-            // make a new entry in the generation tree.
-            genWriteLock();
-            _genMap.put(newGen, new GenTreeNode(newGen, _genMap.get(parentGen)));
-        } finally {
-            genWriteUnlock();
-        }
+        // make a new entry in the generation tree.
+        _genMap.put(newGen, new GenTreeNode(newGen, _genMap.get(parentGen)));
         // make a new entry in the node map
         Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
-        try {
-            nodeWriteLock(index);
-            nodeMap.put(newGen, newState);
-            return newGen;
-        } finally {
-            nodeWriteUnlock(index);
-        }
+        nodeMap.put(newGen, newState);
+        return newGen;
     }
 
     /**
@@ -350,7 +283,7 @@ public class NodeSet {
     private void initializeBoard(boolean switchColors) {
         _genMap.put(0, new GenTreeNode(0));
         for (int i = 0; i <= 99; i++) {
-            Map<Integer, NodeState> nodeMap = new HashMap<Integer, NodeState>();
+            Map<Integer, NodeState> nodeMap = new ConcurrentHashMap<Integer, NodeState>();
             if (i == Node.getIndex(3,0) ||
                 i == Node.getIndex(0,3) ||
                 i == Node.getIndex(3,9) ||
@@ -377,7 +310,7 @@ public class NodeSet {
     private void initializeBoard(List<NodeState> init) {
         _genMap.put(0, new GenTreeNode(0));
         for (int i = 0; i <= 99; i++) {
-            Map<Integer, NodeState> nodeMap = new HashMap<Integer, NodeState>();
+            Map<Integer, NodeState> nodeMap = new ConcurrentHashMap<Integer, NodeState>();
             nodeMap.put(0, init.get(i));
             _nodeMaps.add(i, nodeMap);
         }
