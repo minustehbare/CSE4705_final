@@ -141,9 +141,11 @@ public class NodeSet {
      *
      * @param index the direct index of the queried node (between 0 and 99)
      * @param generation the generation to query
+     * @param cache will cache the result if true
      * @return the state of the queried node
      */
-    public NodeState getNodeState(int index, int generation) {
+    public NodeState getNodeState(int index, int generation, boolean cache) {
+        final int cacheCutoff = 50;
         // Get the node map.
         Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
         GenTreeNode genNode;
@@ -155,28 +157,43 @@ public class NodeSet {
             genReadUnlock();
         }
 
+        NodeState ret = null;
+        int canCache = 0;
         try {
             nodeReadLock(index);
-            NodeState ret = null;
-            {
-                GenTreeNode curNode = genNode;
+            if (nodeMap.containsKey(generation)) {
+                ret = nodeMap.get(generation);
+            } else if (genNode.isRoot()) {
+                throw new StateException ("Requested node not found.");
+            } else {
+                canCache++;
+                GenTreeNode curNode = genNode.getParent();
                 while (ret == null) {
                     if (nodeMap.containsKey(curNode.getGeneration())) {
                         ret = nodeMap.get(curNode.getGeneration());
                     } else if (curNode.isRoot()) {
                         throw new StateException ("Requested node not found.");
                     } else {
+                        canCache++;
                         curNode = curNode.getParent();
                     }
                 }
             }
-            return ret;
         } catch (StateException e) {
             throw new StateException("Node at (" +
                     index +")[" + generation + "] was not found.", e);
         } finally {
             nodeReadUnlock(index);
         }
+        if (cache && canCache > cacheCutoff) {
+            try {
+                nodeWriteLock(index);
+                nodeMap.put(generation, ret);
+            } finally {
+                nodeWriteUnlock(index);
+            }
+        }
+        return ret;
     }
 
     /**
@@ -187,12 +204,13 @@ public class NodeSet {
      * @param row the row of the node to query
      * @param col the column of the node to query
      * @param generation the generation of the node to query
+     * @param cache will cache the result if true
      * @return the state of the queried node
      */
-    public NodeState getNodeState(int row, int col, int generation) {
+    public NodeState getNodeState(int row, int col, int generation, boolean cache) {
         // First, get the index.
         int index = Node.getIndex(row, col);
-        return getNodeState(index, generation);
+        return getNodeState(index, generation, cache);
     }
 
     /**
@@ -203,10 +221,11 @@ public class NodeSet {
      * @param row the row of the node to query
      * @param col the column of the node to query
      * @param generation the generation of the node to query
+     * @param cache will cache the result if true
      * @return the queried node
      */
-    public Node getNode(int row, int col, int generation) {
-        return new Node(row, col, getNodeState(row, col, generation), generation);
+    public Node getNode(int row, int col, int generation, boolean cache) {
+        return new Node(row, col, getNodeState(row, col, generation, cache), generation);
     }
 
     /**
@@ -316,7 +335,7 @@ public class NodeSet {
         // used to free memory.
         List<NodeState> nodes = new ArrayList<NodeState>();
         for (int i = 0; i <= 99; i++) {
-            nodes.add(i, getNodeState(i % 10, i / 10, generation));
+            nodes.add(i, getNodeState(i % 10, i / 10, generation, false));
         }
         return new NodeSet(nodes);
     }
@@ -460,23 +479,24 @@ public class NodeSet {
      * @param row the row of the center to query
      * @param col the column of the center to query
      * @param generation the generation of the center to query
+     * @param cache will cache the result if true
      * @return the nodes around the queried center
      */
-    public List<Node> getNeighbors(int row, int col, int generation) {
+    public List<Node> getNeighbors(int row, int col, int generation, boolean cache) {
         // Basically, try to get the neighbor at each row +- 1, col +-1.
         try {
             List<Node> retList = new LinkedList<Node>();
             if (row > 0) {
-                retList.add(getNode(row - 1, col, generation));
+                retList.add(getNode(row - 1, col, generation, cache));
             }
             if (row < 9) {
-                retList.add(getNode(row + 1, col, generation));
+                retList.add(getNode(row + 1, col, generation, cache));
             }
             if (col > 0) {
-                retList.add(getNode(row, col - 1, generation));
+                retList.add(getNode(row, col - 1, generation, cache));
             }
             if (col < 9) {
-                retList.add(getNode(row, col + 1, generation));
+                retList.add(getNode(row, col + 1, generation, cache));
             }
             return retList;
         } catch (StateException e) {
@@ -490,10 +510,11 @@ public class NodeSet {
      * getNeighbors(int,int,int), except it accepts a Node object as an argument.
      *
      * @param node the node to query neighbors around
+     * @param cache will cache the result if true
      * @return the neighbors of node
      */
-    public List<Node> getNeighbors(Node node) {
-        return getNeighbors(node.getRow(), node.getCol(), node.getGen());
+    public List<Node> getNeighbors(Node node, boolean cache) {
+        return getNeighbors(node.getRow(), node.getCol(), node.getGen(), cache);
     }
 
     /**
@@ -509,7 +530,7 @@ public class NodeSet {
         // TODO - factor this out.
         List<NodeState> nodes = new ArrayList<NodeState>();
         for (int i = 0; i <= 99; i++) {
-            nodes.add(i, getNodeState(i % 10, i / 10, generation));
+            nodes.add(i, getNodeState(i % 10, i / 10, generation, false));
         }
         // create a string - initialize to the top.
         StringBuilder printout = new StringBuilder("┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐\n");

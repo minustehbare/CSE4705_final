@@ -44,12 +44,12 @@ public class Partition {
         return _enclosedSet.size();
     }
 
-    public NodeState getNodeState(int row, int col, int generation) {
-        return _refSet.getNodeState(getModifiedIndex(row,col), generation);
+    public NodeState getNodeState(int row, int col, int generation, boolean cache) {
+        return _refSet.getNodeState(getModifiedIndex(row,col), generation, cache);
     }
 
-    public NodeState getNodeState(int index, int generation) {
-        return _refSet.getNodeState(getModifiedIndex(index), generation);
+    public NodeState getNodeState(int index, int generation, boolean cache) {
+        return _refSet.getNodeState(getModifiedIndex(index), generation, cache);
     }
 
     private int getModifiedIndex(int index) {
@@ -123,15 +123,15 @@ public class Partition {
             char maxValue = 0;
             for (Partition p : options) {
                 if (p.containsNode(i)) {
-                    if (Node.stateToChar(p.getNodeState(i, generation)) > maxValue) {
-                        maxValue = Node.stateToChar(p.getNodeState(i, generation));
+                    if (Node.stateToChar(p.getNodeState(i, generation, false)) > maxValue) {
+                        maxValue = Node.stateToChar(p.getNodeState(i, generation, false));
                     }
                 }
             }
             if (maxValue > 0) {
                 for (Partition p : options) {
                     if (p.containsNode(i)) {
-                        if (Node.stateToChar(p.getNodeState(i, generation)) < maxValue) {
+                        if (Node.stateToChar(p.getNodeState(i, generation, false)) < maxValue) {
                             options.remove(p);
                         }
                     } else {
@@ -161,22 +161,4 @@ public class Partition {
     public int hashCode() {
         return _partID;
     }
-
-//    private class IntPair {
-//        private final int _first;
-//        private final int _second;
-//
-//        public IntPair(int first, int second) {
-//            _first = first;
-//            _second = second;
-//        }
-//
-//        public int first() {
-//            return _first;
-//        }
-//
-//        public int second() {
-//            return _second;
-//        }
-//    }
 }
