@@ -1,5 +1,7 @@
 package CSE4705_final.State;
 
+import CSE4705_final.Client.*;
+
 import java.util.*;
 import java.util.concurrent.atomic.*;
 import java.util.concurrent.locks.*;
@@ -39,9 +41,12 @@ public class NodeSet {
      */
     private Map<Integer, GenTreeNode> _genMap;
 
+    private Map<Integer, PartitionModification> _partGenMap;
+
     // Some read-write locks to make this thread-safe.
     private ReentrantReadWriteLock[] _nodeLocks;
     private ReentrantReadWriteLock _genLock;
+    private ReentrantReadWriteLock _partGenLock;
 
     // A thread-safe counter to increment the generation number.
     private AtomicInteger _nextGen;
@@ -53,8 +58,11 @@ public class NodeSet {
     private void commonInitialization() {
         _nodeMaps = new ArrayList<Map<Integer, NodeState>>(100);
         _genMap = new TreeMap<Integer, GenTreeNode>();
+        _partGenMap = new HashMap<Integer, PartitionModification>();
+
         _nodeLocks = new ReentrantReadWriteLock[100];
         _genLock = new ReentrantReadWriteLock();
+        _partGenLock = new ReentrantReadWriteLock();
 
         // instantiate all node locks.
         for (int i = 0; i <= 99; i++) {
@@ -104,12 +112,6 @@ public class NodeSet {
         initializeBoard(init);
     }
 
-    // Helper function to convert row/column to an index.
-    // The optimizer should inline this.
-    private int getIndex(int row, int col) {
-        return col + row*10;
-    }
-
     // Helper functions to interact with the _genMap lock.
     private void genReadLock()    { _genLock.readLock().lock();    }
     private void genReadUnlock()  { _genLock.readLock().unlock();  }
@@ -121,6 +123,45 @@ public class NodeSet {
     private void nodeReadUnlock(int index)  { _nodeLocks[index].readLock().unlock();  }
     private void nodeWriteLock(int index)   { _nodeLocks[index].writeLock().lock();   }
     private void nodeWriteUnlock(int index) { _nodeLocks[index].writeLock().unlock(); }
+
+    // Helper functions to interact with the _partGenMap lock.
+    private void partGenReadLock()    { _partGenLock.readLock().lock();    }
+    private void partGenReadUnlock()  { _partGenLock.readLock().unlock();  }
+    private void partGenWriteLock()   { _partGenLock.writeLock().lock();   }
+    private void partGenWriteUnlock() { _partGenLock.writeLock().unlock(); }
+
+    public NodeState getNodeState(int index, int generation) {
+        // Get the node map.
+        Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
+        // Get the most relevant node.
+        try {
+            genReadLock();
+            GenTreeNode genNode = _genMap.get(generation);
+            genReadUnlock();
+            nodeReadLock(index);
+            NodeState ret = null;
+            {
+                GenTreeNode curNode = genNode;
+                while (ret == null) {
+                    if (nodeMap.containsKey(curNode.getGeneration())) {
+                        ret = nodeMap.get(curNode.getGeneration());
+                    } else if (curNode.isRoot()) {
+                        throw new StateException ("Requested node not found.");
+                    } else {
+                        curNode = curNode.getParent();
+                    }
+                }
+            }
+            nodeReadUnlock(index);
+            return ret;
+        } catch (StateException e) {
+            throw new StateException("Node at (" +
+                    index +")[" + generation + "] was not found.", e);
+        } finally {
+            genReadUnlock();
+            nodeReadUnlock(index);
+        }
+    }
 
     /**
      * Gets the state of a node.  The generation must be provided.  This method
@@ -134,25 +175,8 @@ public class NodeSet {
      */
     public NodeState getNodeState(int row, int col, int generation) {
         // First, get the index.
-        int index = getIndex(row, col);
-        // Get the node map.
-        Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
-        // Get the most relevant node.
-        try {
-            genReadLock();
-            GenTreeNode genNode = _genMap.get(generation);
-            genReadUnlock();
-            nodeReadLock(index);
-            NodeState ret = genNode.fetchNode(nodeMap);
-            nodeReadUnlock(index);
-            return ret;
-        } catch (StateException e) {
-            throw new StateException("Node at (" +
-                    row + ":" + col +")[" + generation + "] was not found.", e);
-        } finally {
-            genReadUnlock();
-            nodeReadUnlock(index);
-        }
+        int index = Node.getIndex(row, col);
+        return getNodeState(index, generation);
     }
 
     /**
@@ -169,47 +193,41 @@ public class NodeSet {
         return new Node(row, col, getNodeState(row, col, generation), generation);
     }
 
-    /**
-     * Gets a list of neighbors to a node.  This is equivalent to making the
-     * neighboring calls individually.
-     *
-     * @param row the row of the center to query
-     * @param col the column of the center to query
-     * @param generation the generation of the center to query
-     * @return the nodes around the queried center
-     */
-    public List<Node> getNeighbors(int row, int col, int generation) {
-        // Basically, try to get the neighbor at each row +- 1, col +-1.
+    public Set<Partition> getPartitions(int generation) {
         try {
-            List<Node> retList = new LinkedList<Node>();
-            if (row > 0) {
-                retList.add(getNode(row - 1, col, generation));
+            // Get the generation node.
+            genReadLock();
+            GenTreeNode curNode = _genMap.get(generation);
+            genReadUnlock();
+            // Initialize the return set and blacklist.
+            Set<Partition> retSet = new HashSet();
+            Set<Partition> blacklist = new HashSet();
+            // Take out a lock on the modification map.
+            partGenReadLock();
+            // Add "added" to retSet if they are not blacklisted.
+            for (Partition p : _partGenMap.get(curNode.getGeneration()).getAdded()) {
+                if (!blacklist.contains(p)) {
+                    retSet.add(p);
+                }
             }
-            if (row < 9) {
-                retList.add(getNode(row + 1, col, generation));
+            blacklist.addAll(_partGenMap.get(curNode.getGeneration()).getRemoved());
+            // Repeat until we hit a root node!
+            while (!curNode.isRoot()) {
+                for (Partition p : _partGenMap.get(curNode.getGeneration()).getAdded()) {
+                    if (!blacklist.contains(p)) {
+                        retSet.add(p);
+                    }
+                }
+                blacklist.addAll(_partGenMap.get(curNode.getGeneration()).getRemoved());
+                curNode = curNode.getParent();
             }
-            if (col > 0) {
-                retList.add(getNode(row, col - 1, generation));
-            }
-            if (col < 9) {
-                retList.add(getNode(row, col + 1, generation));
-            }
-            return retList;
-        } catch (StateException e) {
-            throw new StateException("Could not get neighbors of (" +
-                    row + ":" + col + ")[" + generation + "].", e);
+            partGenReadUnlock();
+            // Return the set of partitions.
+            return retSet;
+        } finally {
+            genReadUnlock();
+            partGenReadUnlock();
         }
-    }
-
-    /**
-     * Gets a list of neighbors to a node.  This is functionally equivalent to
-     * getNeighbors(int,int,int), except it accepts a Node object as an argument.
-     * 
-     * @param node the node to query neighbors around
-     * @return the neighbors of node
-     */
-    public List<Node> getNeighbors(Node node) {
-        return getNeighbors(node.getRow(), node.getCol(), node.getGen());
     }
 
     /**
@@ -224,7 +242,7 @@ public class NodeSet {
      * @return a generation in which the change has been made
      */
     public int forkNode(int row, int col, int parentGen, NodeState newState) {
-        int index = getIndex(row, col);
+        int index = Node.getIndex(row, col);
         try {
             int newGen = _nextGen.getAndIncrement();
             // make a new entry in the generation tree.
@@ -276,65 +294,6 @@ public class NodeSet {
     }
 
     /**
-     * Helper method for printGen.  Converts a NodeState into a human-readable
-     * character.
-     *
-     * @param s the node state
-     * @return a character representation of the state
-     */
-    private char stateToChar(NodeState s) {
-        switch (s) {
-            case BLACK:
-                return 'B';
-            case WHITE:
-                return 'W';
-            case BLOCKED:
-                return 'X';
-            default:
-                return ' ';
-        }
-    }
-
-    /**
-     * Creates a human-readable printout of a generation.  This printout is a
-     * Unicode string, using box drawing characters to draw the board.  Note
-     * that this string has no leading or trailing newlines.
-     * 
-     * @param generation the generation to print out
-     * @return a string containing the printout
-     */
-    public String printGen(int generation) {
-        // Get the nodes.
-        // TODO - factor this out.
-        List<NodeState> nodes = new ArrayList<NodeState>();
-        for (int i = 0; i <= 99; i++) {
-            nodes.add(i, getNodeState(i % 10, i / 10, generation));
-        }
-        // create a string - initialize to the top.
-        StringBuilder printout = new StringBuilder("┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐\n");
-        // For each row form i=0 to i=9...
-        for (int i = 0; i <= 9; i++) {
-            // Print out the first liner.
-            printout.append('│');
-            // Now, for each column from j=0 to j=9...
-            for (int j = 0; j <= 9; j++) {
-                // Print out the column and a liner.
-                printout.append(stateToChar(nodes.get(getIndex(i,j))));
-                printout.append('│');
-            }
-            // Include the newline!
-            printout.append('\n');
-            // If this is not the last row (i=9), print out a filler row.
-            if (i < 9) {
-                printout.append("├─┼─┼─┼─┼─┼─┼─┼─┼─┼─┤\n");
-            }
-        }
-        // Include the last row.
-        printout.append("└─┴─┴─┴─┴─┴─┴─┴─┴─┴─┘");
-        return printout.toString();
-    }
-
-    /**
      * Initializes the board to the beginning of a game.  The BLACK and WHITE
      * positions are switched if the parameter is true.
      *
@@ -345,15 +304,15 @@ public class NodeSet {
         _genMap.put(0, new GenTreeNode(0));
         for (int i = 0; i <= 99; i++) {
             Map<Integer, NodeState> nodeMap = new HashMap<Integer, NodeState>();
-            if (i == getIndex(3,0) ||
-                i == getIndex(0,3) ||
-                i == getIndex(3,9) ||
-                i == getIndex(0,6)) {
+            if (i == Node.getIndex(3,0) ||
+                i == Node.getIndex(0,3) ||
+                i == Node.getIndex(3,9) ||
+                i == Node.getIndex(0,6)) {
                 nodeMap.put(0, (switchColors ? NodeState.WHITE : NodeState.BLACK));
-            } else if (i == getIndex(6,0) ||
-                       i == getIndex(9,3) ||
-                       i == getIndex(9,6) ||
-                       i == getIndex(6,9)) {
+            } else if (i == Node.getIndex(6,0) ||
+                       i == Node.getIndex(9,3) ||
+                       i == Node.getIndex(9,6) ||
+                       i == Node.getIndex(6,9)) {
                 nodeMap.put(0, (switchColors ? NodeState.BLACK : NodeState.WHITE));
             } else {
                 nodeMap.put(0, NodeState.EMPTY);
@@ -433,44 +392,129 @@ public class NodeSet {
         public GenTreeNode getParent() {
             return _parent;
         }
+    }
 
-        /*
-         * This method is no longer used.
-        public Deque<Integer> getAllGenerations() {
-            // IN FUTURE: Optimize by caching this (if it even gets used).
-            if (isRoot()) {
-                Deque<Integer> ret = new LinkedList<Integer>();
-                ret.addFirst(_gen);
-                return ret;
-            } else {
-                Deque<Integer> ret = _parent.getAllGenerations();
-                ret.addFirst(_gen);
-                return ret;
-            }
+    private class PartitionModification {
+        private final List<Partition> _removed;
+        private final List<Partition> _added;
+
+        public PartitionModification(List<Partition> removed, List<Partition> added) {
+            _removed = removed;
+            _added = added;
         }
-        */
 
-        /**
-         * Finds the most "recent" state of a node.  This recurses up the
-         * generation tree until it finds a generation in which this node has
-         * a definition.  Note that "recent" means the most recent generation
-         * in this chain, not the absolute most recent generation.
-         *
-         * @param nodeMap the node map of the desired node
-         * @return the most "recent" state of the desired node
-         */
-        public NodeState fetchNode(Map<Integer, NodeState> nodeMap) {
-            // ASSUMES A READ LOCK IS TAKEN OUT ON THE ARGUMENT.
-            if (nodeMap.containsKey(_gen)) {
-                return nodeMap.get(_gen);
-            } else {
-                if (isRoot()) {
-                    // Not found.
-                    throw new StateException ("Requested node not found.");
-                } else {
-                    return _parent.fetchNode(nodeMap);
-                }
+        public List<Partition> getRemoved() { return _removed; }
+        public List<Partition> getAdded()   { return _added;   }
+    }
+
+    /***************************************************************************
+     * NODE ALGORITHMS                                                         *
+     *                                                                         *
+     * This section contains algorithms that operate on the NodeSet, including *
+     * their helper classes/methods.                                           *
+     ***************************************************************************
+     */
+
+    /**
+     * Gets a list of neighbors to a node.  This is equivalent to making the
+     * neighboring calls individually.
+     *
+     * @param row the row of the center to query
+     * @param col the column of the center to query
+     * @param generation the generation of the center to query
+     * @return the nodes around the queried center
+     */
+    public List<Node> getNeighbors(int row, int col, int generation) {
+        // Basically, try to get the neighbor at each row +- 1, col +-1.
+        try {
+            List<Node> retList = new LinkedList<Node>();
+            if (row > 0) {
+                retList.add(getNode(row - 1, col, generation));
             }
+            if (row < 9) {
+                retList.add(getNode(row + 1, col, generation));
+            }
+            if (col > 0) {
+                retList.add(getNode(row, col - 1, generation));
+            }
+            if (col < 9) {
+                retList.add(getNode(row, col + 1, generation));
+            }
+            return retList;
+        } catch (StateException e) {
+            throw new StateException("Could not get neighbors of (" +
+                    row + ":" + col + ")[" + generation + "].", e);
         }
     }
+
+    /**
+     * Gets a list of neighbors to a node.  This is functionally equivalent to
+     * getNeighbors(int,int,int), except it accepts a Node object as an argument.
+     *
+     * @param node the node to query neighbors around
+     * @return the neighbors of node
+     */
+    public List<Node> getNeighbors(Node node) {
+        return getNeighbors(node.getRow(), node.getCol(), node.getGen());
+    }
+
+    /**
+     * Creates a human-readable printout of a generation.  This printout is a
+     * Unicode string, using box drawing characters to draw the board.  Note
+     * that this string has no leading or trailing newlines.
+     *
+     * @param generation the generation to print out
+     * @return a string containing the printout
+     */
+    public String printGen(int generation) {
+        // Get the nodes.
+        // TODO - factor this out.
+        List<NodeState> nodes = new ArrayList<NodeState>();
+        for (int i = 0; i <= 99; i++) {
+            nodes.add(i, getNodeState(i % 10, i / 10, generation));
+        }
+        // create a string - initialize to the top.
+        StringBuilder printout = new StringBuilder("┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐\n");
+        // For each row form i=0 to i=9...
+        for (int i = 0; i <= 9; i++) {
+            // Print out the first liner.
+            printout.append('│');
+            // Now, for each column from j=0 to j=9...
+            for (int j = 0; j <= 9; j++) {
+                // Print out the column and a liner.
+                printout.append(Node.stateToChar(nodes.get(Node.getIndex(i,j))));
+                printout.append('│');
+            }
+            // Include the newline!
+            printout.append('\n');
+            // If this is not the last row (i=9), print out a filler row.
+            if (i < 9) {
+                printout.append("├─┼─┼─┼─┼─┼─┼─┼─┼─┼─┤\n");
+            }
+        }
+        // Include the last row.
+        printout.append("└─┴─┴─┴─┴─┴─┴─┴─┴─┴─┘");
+        return printout.toString();
+    }
+
+    /*
+     * TODO: Implement these later.  Their implementation may be moved to the
+     * partition level.
+     * 
+    public List<ClientMove> getAllLegalMoves() {
+        List<ClientMove> retList = new ArrayList<ClientMove>();
+        retList.addAll(getLegalMoves(true));
+        retList.addAll(getLegalMoves(false));
+        return retList;
+    }
+
+    public List<ClientMove> getLegalMoves(boolean forWhite) {
+        
+    }
+
+    public List<ClientMove> getLegalMoves(int row, int col) {
+        
+    }
+     *
+     */
 }
