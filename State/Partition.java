@@ -40,6 +40,21 @@ public class Partition {
         _swapAxis = sa;
     }
 
+    private Set<Integer> modifyEnclosed(int ro, int co, boolean fv, boolean fh, boolean sa) {
+        Set<Integer> newSet = new HashSet<Integer>();
+        for (int i : _enclosedSet) {
+            int row = i / 10;
+            int col = i % 10;
+            row += ro;
+            col += co;
+            if (sa) { int t = row; row = col; col = t; }
+            if (fh) { col = -col; }
+            if (fv) { row = -row; }
+            newSet.add(Node.getIndex(row,col));
+        }
+        return newSet;
+    }
+
     public int enclosedCount() {
         return _enclosedSet.size();
     }
@@ -81,11 +96,11 @@ public class Partition {
     }
 
     public boolean containsNode(int row, int col) {
-        return _enclosedSet.contains(getModifiedIndex(row, col));
+        return _enclosedSet.contains(Node.getIndex(row, col));
     }
 
     public boolean containsNode(int index) {
-        return _enclosedSet.contains(getModifiedIndex(index));
+        return _enclosedSet.contains(index);
     }
 
     public Partition normalizePosition(int generation) {
@@ -121,8 +136,9 @@ public class Partition {
                 iniColOffset = t;
             }
             // Add the new permutation!
-            options.add(new Partition(_refSet, _enclosedSet, iniRowOffset,
-                    iniColOffset, fv, fh, sa));
+            options.add(new Partition(_refSet,
+                    modifyEnclosed(iniRowOffset, iniColOffset, fv, fh, sa),
+                    iniRowOffset, iniColOffset, fv, fh, sa));
         }
 
         // Time to choose a partition!
