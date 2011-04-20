@@ -178,6 +178,7 @@ public class Partition {
     public List<Integer> getReachableIndicies(int row, int col, int gen, boolean cache) {
         List<Integer> retList = new LinkedList<Integer>();
         int offset = 0;
+        retList.add(Node.getIndex(row, col));
         // UP
         while (containsNode(row - offset, col) &&
                 getNodeState(row - offset, col, gen, cache) != NodeState.BLOCKED) {
