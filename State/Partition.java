@@ -323,4 +323,43 @@ public class Partition {
     public List<Node> getReachableNodes(Node center, boolean cache) {
         return getReachableNodes(center.getRow(), center.getCol(), center.getGen(), cache);
     }
+
+    public List<Integer> getNeighboringIndicies(int row, int col, int gen, boolean cache) {
+        List<Integer> retList = new ArrayList<Integer>(8);
+        for (int pos = 0; pos <= 8; pos ++) {
+            if (pos != 4) {
+                int ro = (pos / 3) - 1;
+                int co = (pos % 3) - 1;
+                int index = Node.getIndex(row + ro, col + co);
+                if (containsNode(index) && getNodeState(index, gen, cache) == NodeState.EMPTY) {
+                    retList.add(index);
+                }
+            }
+        }
+        return retList;
+    }
+
+    public List<Integer> getNeighboringIndicies(Node center, boolean cache) {
+        return getNeighboringIndicies(center.getRow(), center.getCol(), center.getGen(), cache);
+    }
+
+    public List<Node> getNeighboringNodes(int row, int col, int gen, boolean cache) {
+        List<Node> retList = new ArrayList<Node>(8);
+        for (int pos = 0; pos <= 8; pos ++) {
+            if (pos != 4) {
+                int ro = (pos / 3) - 1;
+                int co = (pos % 3) - 1;
+                Node n;
+                if (containsNode(row + ro, col + co) &&
+                        (n = getNode(row + ro, col + co, gen, cache)).getState() == NodeState.EMPTY) {
+                    retList.add(n);
+                }
+            }
+        }
+        return retList;
+    }
+
+    public List<Node> getNeighboringNodes(Node center, boolean cache) {
+        return getNeighboringNodes(center.getRow(), center.getCol(), center.getGen(), cache);
+    }
 }
