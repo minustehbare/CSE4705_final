@@ -40,7 +40,7 @@ public class ArticPointDFS {
       stackVisited = new Stack();
       }
    
-    public void runArticPoint(java.util.LinkedList<Edge> _edges){
+    public ArrayList runArticPoint(java.util.LinkedList<Edge> _edges){
       //add edges
       while(_edges.size()!=0){
         _e = _edges.removeFirst();
@@ -67,7 +67,8 @@ public class ArticPointDFS {
       }
       
       //print results
-      this.showResult();
+      //this.showResult();
+      return (articPointList);
     }
    
    /**
