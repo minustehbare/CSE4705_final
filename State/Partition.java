@@ -10,17 +10,19 @@ import java.util.*;
 public class Partition {
 
     private final NodeSet _refSet;
-    private final Set<Integer> _enclosedSet;
+    private final SortedSet<Integer> _enclosedSet;
     private final int _rowOffset;
     private final int _colOffset;
     private final boolean _flipVertical;
     private final boolean _flipHorizontal;
     private final boolean _swapAxis;
+    private final int _gen;
 
-    public Partition(NodeSet refSet, Set<Integer> enclosedNodes) {
+    public Partition(NodeSet refSet, SortedSet<Integer> enclosedNodes, int gen) {
         _refSet = refSet;
         _partID = _NextID.getAndIncrement();
         _enclosedSet = enclosedNodes;
+        _gen = gen;
         _rowOffset = 0;
         _colOffset = 0;
         _flipVertical = false;
@@ -28,11 +30,12 @@ public class Partition {
         _swapAxis = false;
     }
 
-    private Partition(NodeSet refSet, Set<Integer> enclosedNodes, int ro, int co,
-            boolean fv, boolean fh, boolean sa) {
+    private Partition(NodeSet refSet, SortedSet<Integer> enclosedNodes, int gen,
+            int ro, int co, boolean fv, boolean fh, boolean sa) {
         _refSet = refSet;
         _partID = _NextID.getAndIncrement();
         _enclosedSet = enclosedNodes;
+        _gen = gen;
         _rowOffset = ro;
         _colOffset = co;
         _flipVertical = fv;
@@ -40,8 +43,8 @@ public class Partition {
         _swapAxis = sa;
     }
 
-    private Set<Integer> modifyEnclosed(int ro, int co, boolean fv, boolean fh, boolean sa) {
-        Set<Integer> newSet = new HashSet<Integer>();
+    private SortedSet<Integer> modifyEnclosed(int ro, int co, boolean fv, boolean fh, boolean sa) {
+        SortedSet<Integer> newSet = new TreeSet<Integer>();
         for (int i : _enclosedSet) {
             int row = i / 10;
             int col = i % 10;
@@ -59,20 +62,20 @@ public class Partition {
         return _enclosedSet.size();
     }
 
-    public NodeState getNodeState(int row, int col, int generation, boolean cache) {
-        return _refSet.getNodeState(getModifiedIndex(row,col), generation, cache);
+    public NodeState getNodeState(int row, int col, boolean cache) {
+        return _refSet.getNodeState(getModifiedIndex(row,col), _gen, cache);
     }
 
-    public NodeState getNodeState(int index, int generation, boolean cache) {
-        return _refSet.getNodeState(getModifiedIndex(index), generation, cache);
+    public NodeState getNodeState(int index, boolean cache) {
+        return _refSet.getNodeState(getModifiedIndex(index), _gen, cache);
     }
 
-    public Node getNode(int row, int col, int generation, boolean cache) {
-        return _refSet.getNode(getModifiedIndex(row,col), generation, cache);
+    public Node getNode(int row, int col, boolean cache) {
+        return _refSet.getNode(getModifiedIndex(row,col), _gen, cache);
     }
 
-    public Node getNode(int index, int generation, boolean cache) {
-        return _refSet.getNode(getModifiedIndex(index), generation, cache);
+    public Node getNode(int index, boolean cache) {
+        return _refSet.getNode(getModifiedIndex(index), _gen, cache);
     }
 
     private int getModifiedIndex(int index) {
@@ -138,7 +141,7 @@ public class Partition {
             // Add the new permutation!
             options.add(new Partition(_refSet,
                     modifyEnclosed(iniRowOffset, iniColOffset, fv, fh, sa),
-                    iniRowOffset, iniColOffset, fv, fh, sa));
+                    _gen, iniRowOffset, iniColOffset, fv, fh, sa));
         }
 
         // Time to choose a partition!
@@ -170,6 +173,68 @@ public class Partition {
         return options.iterator().next();
     }
 
+    // TODO - remove the cache parameter here and everywhere.
+    // TODO - resolve issue with forking from normalized partition
+    private Set<Partition> forkPartition(int index, NodeState newState, boolean cache) {
+        // First off, check to make sure this isn't unblocking a node.
+        if (getNodeState(index, cache) == NodeState.BLOCKED && newState != NodeState.BLOCKED) {
+            throw new IllegalArgumentException("Cannot unblock a node in a partition.");
+        } else {
+            // Make the change in the refSet.
+            int nextGen = _refSet.forkNode(index, _gen, newState);
+
+            Map<Integer,IntPtr> partMap = new HashMap<Integer,IntPtr>(100);
+            int nextPart = 0;
+            for (int i : _enclosedSet) {
+                // note:  this should be in order.
+                NodeState iState = getNodeState(i, cache);
+                if (iState != NodeState.BLOCKED) {
+                    // the state is not blocked.
+                    // check north node.
+                    if (partMap.containsKey(i-10)) {
+                        // the north node is in a partition - use it
+                        partMap.put(i, partMap.get(i-10));
+                        // check west node.
+                        if ((i % 10) > 0 && partMap.containsKey(i-1)) {
+                            // Set it to point to this partition.
+                            partMap.get(i-1).set(partMap.get(i-10).get());
+                        }
+                    } else if ((i % 10) > 0 && partMap.containsKey(i-1)) {
+                        partMap.put(i, partMap.get(i-1));
+                    } else {
+                        // make a new one.
+                        partMap.put(i, new IntPtr(nextPart));
+                        nextPart++;
+                    }
+                }
+            }
+            // collect partition sets.
+            Map<Integer,SortedSet<Integer>> setMap = new HashMap<Integer, SortedSet<Integer>>();
+            for (int i : partMap.keySet()) {
+                int p = partMap.get(i).get();
+                if (!setMap.containsKey(p)) {
+                    setMap.put(p, new TreeSet<Integer>());
+                }
+                setMap.get(p).add(i);
+            }
+            // Create partitions.
+            Set<Partition> parts = new HashSet<Partition>();
+            for (int p : setMap.keySet()) {
+                parts.add(new Partition(_refSet, setMap.get(p), nextGen));
+            }
+            return parts;
+        }
+    }
+
+//    private Set<Partition> segmentNodes(SortedSet<Integer> nodes, int gen, boolean cache) {
+//    }
+    private class IntPtr {
+        private int _val;
+        public IntPtr(int val) { _val = val; }
+        public int get() { return _val; }
+        public void set(int val) { _val = val; }
+    }
+
     // BOOK-KEEPING FOR IDENTIFYING PARTITIONS.
     private static AtomicInteger _NextID = new AtomicInteger(0);
     private final int _partID;
@@ -191,147 +256,147 @@ public class Partition {
      ***************************************************************************
      */
 
-    public List<Integer> getReachableIndicies(int row, int col, int gen, boolean cache) {
+    public List<Integer> getReachableIndicies(int row, int col, boolean cache) {
         List<Integer> retList = new LinkedList<Integer>();
         int offset = 0;
         retList.add(Node.getIndex(row, col));
         // UP
         while (containsNode(row - offset, col) &&
-                getNodeState(row - offset, col, gen, cache) == NodeState.EMPTY) {
+                getNodeState(row - offset, col, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row - offset, col));
             offset++;
         }
         offset = 0;
         // UP RIGHT
         while (containsNode(row - offset, col + offset) &&
-                getNodeState(row - offset, col + offset, gen, cache) == NodeState.EMPTY) {
+                getNodeState(row - offset, col + offset, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row - offset, col + offset));
             offset++;
         }
         offset = 0;
         // RIGHT
         while (containsNode(row, col + offset) &&
-                getNodeState(row, col + offset, gen, cache) == NodeState.EMPTY) {
+                getNodeState(row, col + offset, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row, col + offset));
             offset++;
         }
         offset = 0;
         // DOWN RIGHT
         while (containsNode(row + offset, col + offset) &&
-                getNodeState(row + offset, col + offset, gen, cache) == NodeState.EMPTY) {
+                getNodeState(row + offset, col + offset, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row + offset, col + offset));
             offset++;
         }
         offset = 0;
         // DOWN
         while (containsNode(row + offset, col) &&
-                getNodeState(row + offset, col, gen, cache) == NodeState.EMPTY) {
+                getNodeState(row + offset, col, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row + offset, col));
             offset++;
         }
         offset = 0;
         // DOWN LEFT
         while (containsNode(row + offset, col - offset) &&
-                getNodeState(row + offset, col - offset, gen, cache) == NodeState.EMPTY) {
+                getNodeState(row + offset, col - offset, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row + offset, col - offset));
             offset++;
         }
         offset = 0;
         // LEFT
         while (containsNode(row, col - offset) &&
-                getNodeState(row, col - offset, gen, cache) == NodeState.EMPTY) {
+                getNodeState(row, col - offset, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row, col - offset));
             offset++;
         }
         offset = 0;
         // UP LEFT
         while (containsNode(row - offset, col - offset) &&
-                getNodeState(row - offset, col - offset, gen, cache) == NodeState.EMPTY) {
+                getNodeState(row - offset, col - offset, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row - offset, col - offset));
             offset++;
         }
         return retList;
     }
 
-    public List<Integer> getReachableIndicies(Node center, boolean cache) {
-        return getReachableIndicies(center.getRow(), center.getCol(), center.getGen(), cache);
+    public List<Integer> getReachableIndicies(int index, boolean cache) {
+        return getReachableIndicies(index, cache);
     }
 
-    public List<Node> getReachableNodes(int row, int col, int gen, boolean cache) {
+    public List<Node> getReachableNodes(int row, int col, boolean cache) {
         List<Node> retList = new LinkedList<Node>();
         int offset = 0;
         Node t;
-        retList.add(getNode(row, col, gen, cache));
+        retList.add(getNode(row, col, cache));
         // UP
         while (containsNode(row - offset, col) &&
-               (t = getNode(row - offset, col, gen, cache)).getState() == NodeState.EMPTY) {
+               (t = getNode(row - offset, col, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // UP RIGHT
         while (containsNode(row - offset, col + offset) &&
-               (t = getNode(row - offset, col + offset, gen, cache)).getState() == NodeState.EMPTY) {
+               (t = getNode(row - offset, col + offset, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // RIGHT
         while (containsNode(row, col + offset) &&
-               (t = getNode(row, col + offset, gen, cache)).getState() == NodeState.EMPTY) {
+               (t = getNode(row, col + offset, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // DOWN RIGHT
         while (containsNode(row + offset, col + offset) &&
-               (t = getNode(row + offset, col + offset, gen, cache)).getState() == NodeState.EMPTY) {
+               (t = getNode(row + offset, col + offset, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // DOWN
         while (containsNode(row + offset, col) &&
-               (t = getNode(row + offset, col, gen, cache)).getState() == NodeState.EMPTY) {
+               (t = getNode(row + offset, col, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // DOWN LEFT
         while (containsNode(row + offset, col - offset) &&
-               (t = getNode(row + offset, col - offset, gen, cache)).getState() == NodeState.EMPTY) {
+               (t = getNode(row + offset, col - offset, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // LEFT
         while (containsNode(row, col - offset) &&
-               (t = getNode(row, col - offset, gen, cache)).getState() == NodeState.EMPTY) {
+               (t = getNode(row, col - offset, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // UP LEFT
         while (containsNode(row - offset, col - offset) &&
-               (t = getNode(row - offset, col - offset, gen, cache)).getState() == NodeState.EMPTY) {
+               (t = getNode(row - offset, col - offset, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         return retList;
     }
 
-    public List<Node> getReachableNodes(Node center, boolean cache) {
-        return getReachableNodes(center.getRow(), center.getCol(), center.getGen(), cache);
+    public List<Node> getReachableNodes(int index, boolean cache) {
+        return getReachableNodes(index, cache);
     }
 
-    public List<Integer> getNeighboringIndicies(int row, int col, int gen, boolean cache) {
+    public List<Integer> getNeighboringIndicies(int row, int col, boolean cache) {
         List<Integer> retList = new ArrayList<Integer>(8);
         for (int pos = 0; pos <= 8; pos ++) {
             if (pos != 4) {
                 int ro = (pos / 3) - 1;
                 int co = (pos % 3) - 1;
                 int index = Node.getIndex(row + ro, col + co);
-                if (containsNode(index) && getNodeState(index, gen, cache) == NodeState.EMPTY) {
+                if (containsNode(index) && getNodeState(index, cache) == NodeState.EMPTY) {
                     retList.add(index);
                 }
             }
@@ -339,11 +404,11 @@ public class Partition {
         return retList;
     }
 
-    public List<Integer> getNeighboringIndicies(Node center, boolean cache) {
-        return getNeighboringIndicies(center.getRow(), center.getCol(), center.getGen(), cache);
+    public List<Integer> getNeighboringIndicies(int index, boolean cache) {
+        return getNeighboringIndicies(index, cache);
     }
 
-    public List<Node> getNeighboringNodes(int row, int col, int gen, boolean cache) {
+    public List<Node> getNeighboringNodes(int row, int col, boolean cache) {
         List<Node> retList = new ArrayList<Node>(8);
         for (int pos = 0; pos <= 8; pos ++) {
             if (pos != 4) {
@@ -351,7 +416,7 @@ public class Partition {
                 int co = (pos % 3) - 1;
                 Node n;
                 if (containsNode(row + ro, col + co) &&
-                        (n = getNode(row + ro, col + co, gen, cache)).getState() == NodeState.EMPTY) {
+                        (n = getNode(row + ro, col + co, cache)).getState() == NodeState.EMPTY) {
                     retList.add(n);
                 }
             }
@@ -359,7 +424,7 @@ public class Partition {
         return retList;
     }
 
-    public List<Node> getNeighboringNodes(Node center, boolean cache) {
-        return getNeighboringNodes(center.getRow(), center.getCol(), center.getGen(), cache);
+    public List<Node> getNeighboringNodes(int index, boolean cache) {
+        return getNeighboringNodes(index, cache);
     }
 }

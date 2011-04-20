@@ -41,12 +41,6 @@ public class NodeSet {
      */
     private Map<Integer, GenTreeNode> _genMap;
 
-    /**
-     * A map that links a generation to the partition modifications made during
-     * that generation.
-     */
-    private Map<Integer, PartitionModification> _partGenMap;
-
     // A thread-safe counter to increment the generation number.
     private AtomicInteger _nextGen;
 
@@ -57,7 +51,6 @@ public class NodeSet {
     private void commonInitialization() {
         _nodeMaps = new ArrayList<Map<Integer, NodeState>>(100);
         _genMap = new ConcurrentHashMap<Integer, GenTreeNode>();
-        _partGenMap = new ConcurrentHashMap<Integer, PartitionModification>();
 
         _nextGen = new AtomicInteger(1);
     }
@@ -187,40 +180,12 @@ public class NodeSet {
         return new Node(index / 10, index % 10, getNodeState(index, generation, cache), generation);
     }
 
-    /**
-     * Gets a set of partitions from a specific generation.  This method relies
-     * on the partitions being already available.  This method must always
-     * iterate through the entire generation branch, otherwise it may miss a
-     * partition that has not been modified since the beginning.
-     *
-     * @param generation the generation to query
-     * @return all partitions that exist in the given generation
-     */
-    public Set<Partition> getPartitions(int generation) {
-        // Get the generation node.
-        GenTreeNode curNode = _genMap.get(generation);
-        // Initialize the return set and blacklist.
-        Set<Partition> retSet = new HashSet();
-        Set<Partition> blacklist = new HashSet();
-        // Add "added" to retSet if they are not blacklisted.
-        for (Partition p : _partGenMap.get(curNode.getGeneration()).getAdded()) {
-            if (!blacklist.contains(p)) {
-                retSet.add(p);
-            }
+    public Partition getRootPartition() {
+        SortedSet<Integer> allSet = new TreeSet<Integer>();
+        for (int i = 0; i <= 99; i ++) {
+            allSet.add(i);
         }
-        blacklist.addAll(_partGenMap.get(curNode.getGeneration()).getRemoved());
-        // Repeat until we hit a root node!
-        while (!curNode.isRoot()) {
-            for (Partition p : _partGenMap.get(curNode.getGeneration()).getAdded()) {
-                if (!blacklist.contains(p)) {
-                    retSet.add(p);
-                }
-            }
-            blacklist.addAll(_partGenMap.get(curNode.getGeneration()).getRemoved());
-            curNode = curNode.getParent();
-        }
-        // Return the set of partitions.
-        return retSet;
+        return new Partition(this, allSet, 0);
     }
 
     /**
@@ -228,14 +193,12 @@ public class NodeSet {
      * creates a new generation with the change requested in the arguments.
      * Note that existing generations will not be changed.
      *
-     * @param row the row of the node to change
-     * @param col the column of the node to change
+     * @param index the index of the node to change
      * @param parentGen the old generation of the node to change
      * @param newState the new state of the node
      * @return a generation in which the change has been made
      */
-    public int forkNode(int row, int col, int parentGen, NodeState newState) {
-        int index = Node.getIndex(row, col);
+    public int forkNode(int index, int parentGen, NodeState newState) {
         int newGen = _nextGen.getAndIncrement();
         // make a new entry in the generation tree.
         _genMap.put(newGen, new GenTreeNode(newGen, _genMap.get(parentGen)));
@@ -243,6 +206,10 @@ public class NodeSet {
         Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
         nodeMap.put(newGen, newState);
         return newGen;
+    }
+
+    public int forkNode(int row, int col, int parentGen, NodeState newState) {
+        return forkNode(Node.getIndex(row,col), parentGen, newState);
     }
 
     /**
@@ -382,23 +349,6 @@ public class NodeSet {
         public GenTreeNode getParent() {
             return _parent;
         }
-    }
-
-    /**
-     * A representation of a partition modification.  Some partitions may be
-     * deleted (split) while new ones are added.
-     */
-    private class PartitionModification {
-        private final List<Partition> _removed;
-        private final List<Partition> _added;
-
-        public PartitionModification(List<Partition> removed, List<Partition> added) {
-            _removed = removed;
-            _added = added;
-        }
-
-        public List<Partition> getRemoved() { return _removed; }
-        public List<Partition> getAdded()   { return _added;   }
     }
 
     /***************************************************************************
