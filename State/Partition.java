@@ -17,10 +17,11 @@ public class Partition {
     private final boolean _flipHorizontal;
     private final boolean _swapAxis;
     private final int _gen;
+    private final boolean _direct;
 
     public Partition(NodeSet refSet, SortedSet<Integer> enclosedNodes, int gen) {
         _refSet = refSet;
-        _partID = _NextID.getAndIncrement();
+//        _partID = _NextID.getAndIncrement();
         _enclosedSet = enclosedNodes;
         _gen = gen;
         _rowOffset = 0;
@@ -28,12 +29,13 @@ public class Partition {
         _flipVertical = false;
         _flipHorizontal = false;
         _swapAxis = false;
+        _direct = true;
     }
 
     private Partition(NodeSet refSet, SortedSet<Integer> enclosedNodes, int gen,
             int ro, int co, boolean fv, boolean fh, boolean sa) {
         _refSet = refSet;
-        _partID = _NextID.getAndIncrement();
+//        _partID = _NextID.getAndIncrement();
         _enclosedSet = enclosedNodes;
         _gen = gen;
         _rowOffset = ro;
@@ -41,6 +43,7 @@ public class Partition {
         _flipVertical = fv;
         _flipHorizontal = fh;
         _swapAxis = sa;
+        _direct = false;
     }
 
     private SortedSet<Integer> modifyEnclosed(int ro, int co, boolean fv, boolean fh, boolean sa) {
@@ -68,6 +71,10 @@ public class Partition {
 
     public NodeState getNodeState(int index, boolean cache) {
         return _refSet.getNodeState(getModifiedIndex(index), _gen, cache);
+    }
+
+    private NodeState getFutureNodeState(int index, int gen, boolean cache) {
+        return _refSet.getNodeState(getModifiedIndex(index), gen, cache);
     }
 
     public Node getNode(int row, int col, boolean cache) {
@@ -106,6 +113,7 @@ public class Partition {
         return _enclosedSet.contains(index);
     }
 
+    // TODO - resolve issue with normalizing a non-direct partition.
     public Partition normalizePosition(int generation) {
         Set<Partition> options = new HashSet<Partition>();
 
@@ -173,8 +181,6 @@ public class Partition {
         return options.iterator().next();
     }
 
-    // TODO - remove the cache parameter here and everywhere.
-    // TODO - resolve issue with forking from normalized partition
     private Set<Partition> forkPartition(int index, NodeState newState, boolean cache) {
         // First off, check to make sure this isn't unblocking a node.
         if (getNodeState(index, cache) == NodeState.BLOCKED && newState != NodeState.BLOCKED) {
@@ -187,7 +193,7 @@ public class Partition {
             int nextPart = 0;
             for (int i : _enclosedSet) {
                 // note:  this should be in order.
-                NodeState iState = getNodeState(i, cache);
+                NodeState iState = getFutureNodeState(i, nextGen, cache);
                 if (iState != NodeState.BLOCKED) {
                     // the state is not blocked.
                     // check north node.
@@ -219,36 +225,24 @@ public class Partition {
             }
             // Create partitions.
             Set<Partition> parts = new HashSet<Partition>();
-            for (int p : setMap.keySet()) {
-                parts.add(new Partition(_refSet, setMap.get(p), nextGen));
+            if (_direct) {
+                for (int p : setMap.keySet()) {
+                    parts.add(new Partition(_refSet, setMap.get(p), nextGen));
+                }
+            } else {
+                for (int p : setMap.keySet()) {
+                    parts.add(new Partition(_refSet, setMap.get(p), nextGen,
+                            _rowOffset, _colOffset, _flipVertical, _flipHorizontal, _swapAxis));
+                }
             }
             return parts;
         }
     }
-
-//    private Set<Partition> segmentNodes(SortedSet<Integer> nodes, int gen, boolean cache) {
-//    }
     private class IntPtr {
         private int _val;
         public IntPtr(int val) { _val = val; }
         public int get() { return _val; }
         public void set(int val) { _val = val; }
-    }
-
-    // BOOK-KEEPING FOR IDENTIFYING PARTITIONS.
-    private static AtomicInteger _NextID = new AtomicInteger(0);
-    private final int _partID;
-    public int getPartID() {
-        return _partID;
-    }
-    @Override
-    public boolean equals(Object other) {
-        return other.getClass().equals(Partition.class) &&
-               _partID == ((Partition) other).getPartID();
-    }
-    @Override
-    public int hashCode() {
-        return _partID;
     }
 
     /***************************************************************************

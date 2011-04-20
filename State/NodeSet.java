@@ -369,7 +369,6 @@ public class NodeSet {
      */
     public String printGen(int generation) {
         // Get the nodes.
-        // TODO - factor this out.
         List<NodeState> nodes = new ArrayList<NodeState>();
         for (int i = 0; i <= 99; i++) {
             nodes.add(i, getNodeState(i % 10, i / 10, generation, false));
