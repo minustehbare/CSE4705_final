@@ -197,56 +197,56 @@ public class Partition {
         retList.add(Node.getIndex(row, col));
         // UP
         while (containsNode(row - offset, col) &&
-                getNodeState(row - offset, col, gen, cache) != NodeState.BLOCKED) {
+                getNodeState(row - offset, col, gen, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row - offset, col));
             offset++;
         }
         offset = 0;
         // UP RIGHT
         while (containsNode(row - offset, col + offset) &&
-                getNodeState(row - offset, col + offset, gen, cache) != NodeState.BLOCKED) {
+                getNodeState(row - offset, col + offset, gen, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row - offset, col + offset));
             offset++;
         }
         offset = 0;
         // RIGHT
         while (containsNode(row, col + offset) &&
-                getNodeState(row, col + offset, gen, cache) != NodeState.BLOCKED) {
+                getNodeState(row, col + offset, gen, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row, col + offset));
             offset++;
         }
         offset = 0;
         // DOWN RIGHT
         while (containsNode(row + offset, col + offset) &&
-                getNodeState(row + offset, col + offset, gen, cache) != NodeState.BLOCKED) {
+                getNodeState(row + offset, col + offset, gen, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row + offset, col + offset));
             offset++;
         }
         offset = 0;
         // DOWN
         while (containsNode(row + offset, col) &&
-                getNodeState(row + offset, col, gen, cache) != NodeState.BLOCKED) {
+                getNodeState(row + offset, col, gen, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row + offset, col));
             offset++;
         }
         offset = 0;
         // DOWN LEFT
         while (containsNode(row + offset, col - offset) &&
-                getNodeState(row + offset, col - offset, gen, cache) != NodeState.BLOCKED) {
+                getNodeState(row + offset, col - offset, gen, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row + offset, col - offset));
             offset++;
         }
         offset = 0;
         // LEFT
         while (containsNode(row, col - offset) &&
-                getNodeState(row, col - offset, gen, cache) != NodeState.BLOCKED) {
+                getNodeState(row, col - offset, gen, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row, col - offset));
             offset++;
         }
         offset = 0;
         // UP LEFT
         while (containsNode(row - offset, col - offset) &&
-                getNodeState(row - offset, col - offset, gen, cache) != NodeState.BLOCKED) {
+                getNodeState(row - offset, col - offset, gen, cache) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row - offset, col - offset));
             offset++;
         }
@@ -264,56 +264,56 @@ public class Partition {
         retList.add(getNode(row, col, gen, cache));
         // UP
         while (containsNode(row - offset, col) &&
-               (t = getNode(row - offset, col, gen, cache)).getState() != NodeState.BLOCKED) {
+               (t = getNode(row - offset, col, gen, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // UP RIGHT
         while (containsNode(row - offset, col + offset) &&
-               (t = getNode(row - offset, col + offset, gen, cache)).getState() != NodeState.BLOCKED) {
+               (t = getNode(row - offset, col + offset, gen, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // RIGHT
         while (containsNode(row, col + offset) &&
-               (t = getNode(row, col + offset, gen, cache)).getState() != NodeState.BLOCKED) {
+               (t = getNode(row, col + offset, gen, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // DOWN RIGHT
         while (containsNode(row + offset, col + offset) &&
-               (t = getNode(row + offset, col + offset, gen, cache)).getState() != NodeState.BLOCKED) {
+               (t = getNode(row + offset, col + offset, gen, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // DOWN
         while (containsNode(row + offset, col) &&
-               (t = getNode(row + offset, col, gen, cache)).getState() != NodeState.BLOCKED) {
+               (t = getNode(row + offset, col, gen, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // DOWN LEFT
         while (containsNode(row + offset, col - offset) &&
-               (t = getNode(row + offset, col - offset, gen, cache)).getState() != NodeState.BLOCKED) {
+               (t = getNode(row + offset, col - offset, gen, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // LEFT
         while (containsNode(row, col - offset) &&
-               (t = getNode(row, col - offset, gen, cache)).getState() != NodeState.BLOCKED) {
+               (t = getNode(row, col - offset, gen, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
         offset = 0;
         // UP LEFT
         while (containsNode(row - offset, col - offset) &&
-               (t = getNode(row - offset, col - offset, gen, cache)).getState() != NodeState.BLOCKED) {
+               (t = getNode(row - offset, col - offset, gen, cache)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
