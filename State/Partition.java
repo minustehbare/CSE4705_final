@@ -257,14 +257,65 @@ public class Partition {
         return getReachableIndicies(center.getRow(), center.getCol(), center.getGen(), cache);
     }
 
-    // NOTE:  This can be optimized so it only queries once per index.  Or we can
-    // just always enforce caching.
     public List<Node> getReachableNodes(int row, int col, int gen, boolean cache) {
-        List<Integer> indicies = getReachableIndicies(row, col, gen, cache);
         List<Node> retList = new LinkedList<Node>();
-        for (int i : indicies) {
-            // note - if caching was enabled, it would already be cached!
-            retList.add(getNode(i, gen, false));
+        int offset = 0;
+        Node t;
+        retList.add(getNode(row, col, gen, cache));
+        // UP
+        while (containsNode(row - offset, col) &&
+               (t = getNode(row - offset, col, gen, cache)).getState() != NodeState.BLOCKED) {
+            retList.add(t);
+            offset++;
+        }
+        offset = 0;
+        // UP RIGHT
+        while (containsNode(row - offset, col + offset) &&
+               (t = getNode(row - offset, col + offset, gen, cache)).getState() != NodeState.BLOCKED) {
+            retList.add(t);
+            offset++;
+        }
+        offset = 0;
+        // RIGHT
+        while (containsNode(row, col + offset) &&
+               (t = getNode(row, col + offset, gen, cache)).getState() != NodeState.BLOCKED) {
+            retList.add(t);
+            offset++;
+        }
+        offset = 0;
+        // DOWN RIGHT
+        while (containsNode(row + offset, col + offset) &&
+               (t = getNode(row + offset, col + offset, gen, cache)).getState() != NodeState.BLOCKED) {
+            retList.add(t);
+            offset++;
+        }
+        offset = 0;
+        // DOWN
+        while (containsNode(row + offset, col) &&
+               (t = getNode(row + offset, col, gen, cache)).getState() != NodeState.BLOCKED) {
+            retList.add(t);
+            offset++;
+        }
+        offset = 0;
+        // DOWN LEFT
+        while (containsNode(row + offset, col - offset) &&
+               (t = getNode(row + offset, col - offset, gen, cache)).getState() != NodeState.BLOCKED) {
+            retList.add(t);
+            offset++;
+        }
+        offset = 0;
+        // LEFT
+        while (containsNode(row, col - offset) &&
+               (t = getNode(row, col - offset, gen, cache)).getState() != NodeState.BLOCKED) {
+            retList.add(t);
+            offset++;
+        }
+        offset = 0;
+        // UP LEFT
+        while (containsNode(row - offset, col - offset) &&
+               (t = getNode(row - offset, col - offset, gen, cache)).getState() != NodeState.BLOCKED) {
+            retList.add(t);
+            offset++;
         }
         return retList;
     }
