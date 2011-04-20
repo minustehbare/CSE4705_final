@@ -87,6 +87,10 @@ public class Node {
         return col + row*10;
     }
 
+    public int getIndex() {
+        return getIndex(_row, _col);
+    }
+
     /**
      * Helper method for converting NodeState to a value.  Converts a NodeState
      * into a human-readable character.

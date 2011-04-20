@@ -41,12 +41,6 @@ public class NodeSet {
      */
     private Map<Integer, GenTreeNode> _genMap;
 
-    /**
-     * A map that links a generation to the partition modifications made during
-     * that generation.
-     */
-    private Map<Integer, PartitionModification> _partGenMap;
-
     // A thread-safe counter to increment the generation number.
     private AtomicInteger _nextGen;
 
@@ -57,7 +51,6 @@ public class NodeSet {
     private void commonInitialization() {
         _nodeMaps = new ArrayList<Map<Integer, NodeState>>(100);
         _genMap = new ConcurrentHashMap<Integer, GenTreeNode>();
-        _partGenMap = new ConcurrentHashMap<Integer, PartitionModification>();
 
         _nextGen = new AtomicInteger(1);
     }
@@ -187,40 +180,12 @@ public class NodeSet {
         return new Node(index / 10, index % 10, getNodeState(index, generation, cache), generation);
     }
 
-    /**
-     * Gets a set of partitions from a specific generation.  This method relies
-     * on the partitions being already available.  This method must always
-     * iterate through the entire generation branch, otherwise it may miss a
-     * partition that has not been modified since the beginning.
-     *
-     * @param generation the generation to query
-     * @return all partitions that exist in the given generation
-     */
-    public Set<Partition> getPartitions(int generation) {
-        // Get the generation node.
-        GenTreeNode curNode = _genMap.get(generation);
-        // Initialize the return set and blacklist.
-        Set<Partition> retSet = new HashSet();
-        Set<Partition> blacklist = new HashSet();
-        // Add "added" to retSet if they are not blacklisted.
-        for (Partition p : _partGenMap.get(curNode.getGeneration()).getAdded()) {
-            if (!blacklist.contains(p)) {
-                retSet.add(p);
-            }
+    public Partition getRootPartition() {
+        SortedSet<Integer> allSet = new TreeSet<Integer>();
+        for (int i = 0; i <= 99; i ++) {
+            allSet.add(i);
         }
-        blacklist.addAll(_partGenMap.get(curNode.getGeneration()).getRemoved());
-        // Repeat until we hit a root node!
-        while (!curNode.isRoot()) {
-            for (Partition p : _partGenMap.get(curNode.getGeneration()).getAdded()) {
-                if (!blacklist.contains(p)) {
-                    retSet.add(p);
-                }
-            }
-            blacklist.addAll(_partGenMap.get(curNode.getGeneration()).getRemoved());
-            curNode = curNode.getParent();
-        }
-        // Return the set of partitions.
-        return retSet;
+        return new Partition(this, allSet, 0);
     }
 
     /**
@@ -228,14 +193,12 @@ public class NodeSet {
      * creates a new generation with the change requested in the arguments.
      * Note that existing generations will not be changed.
      *
-     * @param row the row of the node to change
-     * @param col the column of the node to change
+     * @param index the index of the node to change
      * @param parentGen the old generation of the node to change
      * @param newState the new state of the node
      * @return a generation in which the change has been made
      */
-    public int forkNode(int row, int col, int parentGen, NodeState newState) {
-        int index = Node.getIndex(row, col);
+    public int forkNode(int index, int parentGen, NodeState newState) {
         int newGen = _nextGen.getAndIncrement();
         // make a new entry in the generation tree.
         _genMap.put(newGen, new GenTreeNode(newGen, _genMap.get(parentGen)));
@@ -243,6 +206,10 @@ public class NodeSet {
         Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
         nodeMap.put(newGen, newState);
         return newGen;
+    }
+
+    public int forkNode(int row, int col, int parentGen, NodeState newState) {
+        return forkNode(Node.getIndex(row,col), parentGen, newState);
     }
 
     /**
@@ -384,23 +351,6 @@ public class NodeSet {
         }
     }
 
-    /**
-     * A representation of a partition modification.  Some partitions may be
-     * deleted (split) while new ones are added.
-     */
-    private class PartitionModification {
-        private final List<Partition> _removed;
-        private final List<Partition> _added;
-
-        public PartitionModification(List<Partition> removed, List<Partition> added) {
-            _removed = removed;
-            _added = added;
-        }
-
-        public List<Partition> getRemoved() { return _removed; }
-        public List<Partition> getAdded()   { return _added;   }
-    }
-
     /***************************************************************************
      * NODE ALGORITHMS                                                         *
      *                                                                         *
@@ -408,51 +358,6 @@ public class NodeSet {
      * their helper classes/methods.                                           *
      ***************************************************************************
      */
-
-    /**
-     * Gets a list of neighbors to a node.  This is equivalent to making the
-     * neighboring calls individually.
-     *
-     * @param row the row of the center to query
-     * @param col the column of the center to query
-     * @param generation the generation of the center to query
-     * @param cache will cache the result if true
-     * @return the nodes around the queried center
-     */
-    public List<Node> getNeighbors(int row, int col, int generation, boolean cache) {
-        // Basically, try to get the neighbor at each row +- 1, col +-1.
-        try {
-            List<Node> retList = new LinkedList<Node>();
-            if (row > 0) {
-                retList.add(getNode(row - 1, col, generation, cache));
-            }
-            if (row < 9) {
-                retList.add(getNode(row + 1, col, generation, cache));
-            }
-            if (col > 0) {
-                retList.add(getNode(row, col - 1, generation, cache));
-            }
-            if (col < 9) {
-                retList.add(getNode(row, col + 1, generation, cache));
-            }
-            return retList;
-        } catch (StateException e) {
-            throw new StateException("Could not get neighbors of (" +
-                    row + ":" + col + ")[" + generation + "].", e);
-        }
-    }
-
-    /**
-     * Gets a list of neighbors to a node.  This is functionally equivalent to
-     * getNeighbors(int,int,int), except it accepts a Node object as an argument.
-     *
-     * @param node the node to query neighbors around
-     * @param cache will cache the result if true
-     * @return the neighbors of node
-     */
-    public List<Node> getNeighbors(Node node, boolean cache) {
-        return getNeighbors(node.getRow(), node.getCol(), node.getGen(), cache);
-    }
 
     /**
      * Creates a human-readable printout of a generation.  This printout is a
@@ -464,7 +369,6 @@ public class NodeSet {
      */
     public String printGen(int generation) {
         // Get the nodes.
-        // TODO - factor this out.
         List<NodeState> nodes = new ArrayList<NodeState>();
         for (int i = 0; i <= 99; i++) {
             nodes.add(i, getNodeState(i % 10, i / 10, generation, false));
