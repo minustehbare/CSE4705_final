@@ -49,7 +49,7 @@ public class MainConsole {
         // main menu
         ConsoleMenu mainMenu = new ConsoleMenu("Main Menu");
 
-        mainMenu.addOption(new ConsoleOption("[H]uman player", "Run the Human AI", new Runnable() {
+        mainMenu.addOption(new ConsoleOption("[H]uman player", "Run the Human AI", "Allows you to connect to a remote Amazons server\nand play a game manually.", new Runnable() {
             public void run() {
                 System.out.println("CLOSURES!");
             }

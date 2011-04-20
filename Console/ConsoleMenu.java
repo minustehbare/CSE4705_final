@@ -12,7 +12,7 @@ public class ConsoleMenu {
     private final String _menuName;
     private int _longestOptionName = 0;
 
-    private static final String GENERAL_HELP = "";
+    private static final String GENERAL_HELP = "You can either:\n* Type the shortcut letter\n* Type enough of an option to make it unique\n* Prefix either of the above with '?' to get help.";
 
     public ConsoleMenu(String menuName) {
         _menuName = menuName;
@@ -63,13 +63,19 @@ public class ConsoleMenu {
         String stdInput = (helpReq ? input.substring(1) : input);
         if (stdInput.equals("")) {
             // Genreal help
-            return GENERAL_HELP;
+            System.out.println(GENERAL_HELP);
+            return "REPEAT";
         } else {
             // check shortcuts
             for (ConsoleOption opt : _options) {
                 if (stdInput.toLowerCase().equals(opt.getShortcut().toLowerCase())) {
-                    opt.run();
-                    return opt.nextMenu();
+                    if (helpReq) {
+                        System.out.println(opt.getLongDesc());
+                        return "REPEAT";
+                    } else {
+                        opt.run();
+                        return opt.nextMenu();
+                    }
                 }
             }
             // Now we need to check for the most specific case...
@@ -84,8 +90,13 @@ public class ConsoleMenu {
                 return "REPEAT";
             } else if (opts.size() == 1) {
                 ConsoleOption opt = opts.iterator().next();
-                opt.run();
-                return opt.nextMenu();
+                if (helpReq) {
+                    System.out.println(opt.getLongDesc());
+                    return "REPEAT";
+                } else {
+                    opt.run();
+                    return opt.nextMenu();
+                }
             } else {
                 System.out.println("Too many possibilities:");
                 for (ConsoleOption opt : opts) {

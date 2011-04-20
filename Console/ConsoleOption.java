@@ -5,6 +5,8 @@ package CSE4705_final.Console;
  * @author Ethan Levine
  */
 public class ConsoleOption implements Runnable {
+    private static final String DEFAULT_LONG_DESC = "There is no help for this command.";
+
     private final String _displayName;
     private final String _optionName;
     private final String _shortcut;
@@ -18,7 +20,7 @@ public class ConsoleOption implements Runnable {
         _optionName = stripShortcut(displayName);
         _shortcut = extractShortcut(displayName);
         _shortDesc = "";
-        _longDesc = "";
+        _longDesc = DEFAULT_LONG_DESC;
         _action = action;
         _nextMenu = nextMenu;
     }
@@ -29,7 +31,7 @@ public class ConsoleOption implements Runnable {
         _optionName = stripShortcut(displayName);
         _shortcut = extractShortcut(displayName);
         _shortDesc = shortDesc;
-        _longDesc = "";
+        _longDesc = DEFAULT_LONG_DESC;
         _action = action;
         _nextMenu = nextMenu;
     }
