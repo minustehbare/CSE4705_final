@@ -399,4 +399,24 @@ public class Partition {
         }
         return freeCount;
     }
+
+    public Set<Integer> getWhiteQueens(int gen, boolean cache) {
+        Set<Integer> indicies = new HashSet<Integer>();
+        for (int i : _enclosedSet) {
+            if (getNodeState(i, gen, cache) == NodeState.WHITE) {
+                indicies.add(i);
+            }
+        }
+        return indicies;
+    }
+
+    public Set<Integer> getBlackQueens(int gen, boolean cache) {
+        Set<Integer> indicies = new HashSet<Integer>();
+        for (int i : _enclosedSet) {
+            if (getNodeState(i, gen, cache) == NodeState.BLACK) {
+                indicies.add(i);
+            }
+        }
+        return indicies;
+    }
 }
