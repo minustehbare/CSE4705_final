@@ -1,3 +1,5 @@
+package CSE4705_final.RandomClient;
+
 public class Pair
 {
   public int x;

@@ -1,4 +1,4 @@
-import java.util.*;
+package CSE4705_final.Graph;
 
 public class Board{
   private Vertex[][] _board;
@@ -239,7 +239,7 @@ public class Board{
   
   public java.util.LinkedList<Edge> getEdgeParam(){
     java.util.LinkedList<Edge> _edgeParam;
-    java.util.ListIterator<Edge> itr = _edges.listIterator();;   
+    java.util.ListIterator<Edge> itr = _edges.listIterator();
     _edgeParam = new java.util.LinkedList<Edge>();
     Edge _tempEdge;
     while(itr.hasNext())

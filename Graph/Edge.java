@@ -1,3 +1,5 @@
+package CSE4705_final.Graph;
+
 public class Edge {      
   Vertex v, x;   // two vertices incident to this edge       
   
@@ -14,3 +16,4 @@ public class Edge {
      return ((v.id == a.id) && (x.id == b.id));
   }      
 }
+

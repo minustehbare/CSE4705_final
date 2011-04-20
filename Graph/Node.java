@@ -1,3 +1,5 @@
+package CSE4705_final.Graph;
+
 public class Node{
   public int x;
   public int y;

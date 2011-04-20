@@ -1,3 +1,5 @@
+package CSE4705_final.RandomClient;
+
 import java.io.*;
 import java.net.*;
 

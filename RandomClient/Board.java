@@ -1,3 +1,5 @@
+package CSE4705_final.RandomClient;
+
 //Class representing the state of the board
 public class Board 
 {  
