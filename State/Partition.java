@@ -427,4 +427,61 @@ public class Partition {
     public List<Node> getNeighboringNodes(int index, boolean cache) {
         return getNeighboringNodes(index, cache);
     }
+
+    public PartitionState getPartitionState(int gen, boolean cache) {
+        boolean blackFound = false;
+        boolean whiteFound = false;
+        for (int i : _enclosedSet) {
+            NodeState iState = getNodeState(i, gen, cache);
+            if (iState == NodeState.BLACK) {
+                blackFound = true;
+            } else if (iState == NodeState.WHITE) {
+                whiteFound = true;
+            }
+        }
+        if (blackFound) {
+            if (whiteFound) {
+                return PartitionState.CONTESTED;
+            } else {
+                return PartitionState.BLACK_OWNED;
+            }
+        } else {
+            if (whiteFound) {
+                return PartitionState.WHITE_OWNED;
+            } else {
+                return PartitionState.DEAD;
+            }
+        }
+    }
+
+    public int getFreeStates(int gen, boolean cache) {
+        int freeCount = 0;
+        for (int i : _enclosedSet) {
+            NodeState iState = getNodeState(i, gen, cache);
+            if (iState == NodeState.EMPTY) {
+                freeCount++;
+            }
+        }
+        return freeCount;
+    }
+
+    public Set<Integer> getWhiteQueens(int gen, boolean cache) {
+        Set<Integer> indicies = new HashSet<Integer>();
+        for (int i : _enclosedSet) {
+            if (getNodeState(i, gen, cache) == NodeState.WHITE) {
+                indicies.add(i);
+            }
+        }
+        return indicies;
+    }
+
+    public Set<Integer> getBlackQueens(int gen, boolean cache) {
+        Set<Integer> indicies = new HashSet<Integer>();
+        for (int i : _enclosedSet) {
+            if (getNodeState(i, gen, cache) == NodeState.BLACK) {
+                indicies.add(i);
+            }
+        }
+        return indicies;
+    }
 }

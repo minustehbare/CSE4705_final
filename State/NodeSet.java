@@ -360,51 +360,6 @@ public class NodeSet {
      */
 
     /**
-     * Gets a list of neighbors to a node.  This is equivalent to making the
-     * neighboring calls individually.
-     *
-     * @param row the row of the center to query
-     * @param col the column of the center to query
-     * @param generation the generation of the center to query
-     * @param cache will cache the result if true
-     * @return the nodes around the queried center
-     */
-    public List<Node> getNeighbors(int row, int col, int generation, boolean cache) {
-        // Basically, try to get the neighbor at each row +- 1, col +-1.
-        try {
-            List<Node> retList = new LinkedList<Node>();
-            if (row > 0) {
-                retList.add(getNode(row - 1, col, generation, cache));
-            }
-            if (row < 9) {
-                retList.add(getNode(row + 1, col, generation, cache));
-            }
-            if (col > 0) {
-                retList.add(getNode(row, col - 1, generation, cache));
-            }
-            if (col < 9) {
-                retList.add(getNode(row, col + 1, generation, cache));
-            }
-            return retList;
-        } catch (StateException e) {
-            throw new StateException("Could not get neighbors of (" +
-                    row + ":" + col + ")[" + generation + "].", e);
-        }
-    }
-
-    /**
-     * Gets a list of neighbors to a node.  This is functionally equivalent to
-     * getNeighbors(int,int,int), except it accepts a Node object as an argument.
-     *
-     * @param node the node to query neighbors around
-     * @param cache will cache the result if true
-     * @return the neighbors of node
-     */
-    public List<Node> getNeighbors(Node node, boolean cache) {
-        return getNeighbors(node.getRow(), node.getCol(), node.getGen(), cache);
-    }
-
-    /**
      * Creates a human-readable printout of a generation.  This printout is a
      * Unicode string, using box drawing characters to draw the board.  Note
      * that this string has no leading or trailing newlines.
