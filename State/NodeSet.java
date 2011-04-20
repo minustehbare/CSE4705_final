@@ -183,6 +183,10 @@ public class NodeSet {
         return new Node(row, col, getNodeState(row, col, generation, cache), generation);
     }
 
+    public Node getNode(int index, int generation, boolean cache) {
+        return new Node(index / 10, index % 10, getNodeState(index, generation, cache), generation);
+    }
+
     /**
      * Gets a set of partitions from a specific generation.  This method relies
      * on the partitions being already available.  This method must always

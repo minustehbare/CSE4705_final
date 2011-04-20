@@ -52,6 +52,14 @@ public class Partition {
         return _refSet.getNodeState(getModifiedIndex(index), generation, cache);
     }
 
+    public Node getNode(int row, int col, int generation, boolean cache) {
+        return _refSet.getNode(getModifiedIndex(row,col), generation, cache);
+    }
+
+    public Node getNode(int index, int generation, boolean cache) {
+        return _refSet.getNode(getModifiedIndex(index), generation, cache);
+    }
+
     private int getModifiedIndex(int index) {
         return getModifiedIndex(index / 10, index % 10);
     }
@@ -160,5 +168,91 @@ public class Partition {
     @Override
     public int hashCode() {
         return _partID;
+    }
+
+    /***************************************************************************
+     * ALGORITHMS                                                              *
+     ***************************************************************************
+     */
+
+    public List<Integer> getReachableIndicies(int row, int col, int gen, boolean cache) {
+        List<Integer> retList = new LinkedList<Integer>();
+        int offset = 0;
+        // UP
+        while (containsNode(row - offset, col) &&
+                getNodeState(row - offset, col, gen, cache) != NodeState.BLOCKED) {
+            retList.add(Node.getIndex(row - offset, col));
+            offset++;
+        }
+        offset = 0;
+        // UP RIGHT
+        while (containsNode(row - offset, col + offset) &&
+                getNodeState(row - offset, col + offset, gen, cache) != NodeState.BLOCKED) {
+            retList.add(Node.getIndex(row - offset, col + offset));
+            offset++;
+        }
+        offset = 0;
+        // RIGHT
+        while (containsNode(row, col + offset) &&
+                getNodeState(row, col + offset, gen, cache) != NodeState.BLOCKED) {
+            retList.add(Node.getIndex(row, col + offset));
+            offset++;
+        }
+        offset = 0;
+        // DOWN RIGHT
+        while (containsNode(row + offset, col + offset) &&
+                getNodeState(row + offset, col + offset, gen, cache) != NodeState.BLOCKED) {
+            retList.add(Node.getIndex(row + offset, col + offset));
+            offset++;
+        }
+        offset = 0;
+        // DOWN
+        while (containsNode(row + offset, col) &&
+                getNodeState(row + offset, col, gen, cache) != NodeState.BLOCKED) {
+            retList.add(Node.getIndex(row + offset, col));
+            offset++;
+        }
+        offset = 0;
+        // DOWN LEFT
+        while (containsNode(row + offset, col - offset) &&
+                getNodeState(row + offset, col - offset, gen, cache) != NodeState.BLOCKED) {
+            retList.add(Node.getIndex(row + offset, col - offset));
+            offset++;
+        }
+        offset = 0;
+        // LEFT
+        while (containsNode(row, col - offset) &&
+                getNodeState(row, col - offset, gen, cache) != NodeState.BLOCKED) {
+            retList.add(Node.getIndex(row, col - offset));
+            offset++;
+        }
+        offset = 0;
+        // UP LEFT
+        while (containsNode(row - offset, col - offset) &&
+                getNodeState(row - offset, col - offset, gen, cache) != NodeState.BLOCKED) {
+            retList.add(Node.getIndex(row - offset, col - offset));
+            offset++;
+        }
+        return retList;
+    }
+
+    public List<Integer> getReachableIndicies(Node center, boolean cache) {
+        return getReachableIndicies(center.getRow(), center.getCol(), center.getGen(), cache);
+    }
+
+    // NOTE:  This can be optimized so it only queries once per index.  Or we can
+    // just always enforce caching.
+    public List<Node> getReachableNodes(int row, int col, int gen, boolean cache) {
+        List<Integer> indicies = getReachableIndicies(row, col, gen, cache);
+        List<Node> retList = new LinkedList<Node>();
+        for (int i : indicies) {
+            // note - if caching was enabled, it would already be cached!
+            retList.add(getNode(i, gen, false));
+        }
+        return retList;
+    }
+
+    public List<Node> getReachableNodes(Node center, boolean cache) {
+        return getReachableNodes(center.getRow(), center.getCol(), center.getGen(), cache);
     }
 }
