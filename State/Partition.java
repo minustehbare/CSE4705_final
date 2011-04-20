@@ -388,4 +388,15 @@ public class Partition {
             }
         }
     }
+
+    public int getFreeStates(int gen, boolean cache) {
+        int freeCount = 0;
+        for (int i : _enclosedSet) {
+            NodeState iState = getNodeState(i, gen, cache);
+            if (iState == NodeState.EMPTY) {
+                freeCount++;
+            }
+        }
+        return freeCount;
+    }
 }
