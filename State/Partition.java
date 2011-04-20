@@ -362,4 +362,30 @@ public class Partition {
     public List<Node> getNeighboringNodes(Node center, boolean cache) {
         return getNeighboringNodes(center.getRow(), center.getCol(), center.getGen(), cache);
     }
+
+    public PartitionState getPartitionState(int gen, boolean cache) {
+        boolean blackFound = false;
+        boolean whiteFound = false;
+        for (int i : _enclosedSet) {
+            NodeState iState = getNodeState(i, gen, cache);
+            if (iState == NodeState.BLACK) {
+                blackFound = true;
+            } else if (iState == NodeState.WHITE) {
+                whiteFound = true;
+            }
+        }
+        if (blackFound) {
+            if (whiteFound) {
+                return PartitionState.CONTESTED;
+            } else {
+                return PartitionState.BLACK_OWNED;
+            }
+        } else {
+            if (whiteFound) {
+                return PartitionState.WHITE_OWNED;
+            } else {
+                return PartitionState.DEAD;
+            }
+        }
+    }
 }
