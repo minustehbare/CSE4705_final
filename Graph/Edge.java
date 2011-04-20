@@ -5,7 +5,7 @@ public class Edge {
   Edge(Vertex a, Vertex b) {
      v = a;  x = b;
   }
-  // Return the string repesent'n of the edge in form of a pair of vertices
+  // Return the string repesention of the edge in form of a pair of vertices
   String getEdge() {
      return "("+v.id+","+x.id+")";
   }
