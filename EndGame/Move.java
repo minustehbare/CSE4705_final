@@ -1,18 +1,18 @@
 package CSE4705_final.EndGame;
 
-import CSE4705_final.Graph.Vertex;
+import CSE4705_final.State.Node;
 
 public class Move {
-  Vertex _move, _shot;
+  Node _move, _shot;
   int _value;
-  public Move(Vertex m, Vertex s, int v)
+  public Move(Node m, Node s, int v)
   {
     _move = m;
     _shot = s;
     _value= v;
   }
 
-  public Vertex getMove(){return _move;}
-  public Vertex getShot(){return _shot;}
+  public Node getMove(){return _move;}
+  public Node getShot(){return _shot;}
   public int getValue(){return _value;}
 }

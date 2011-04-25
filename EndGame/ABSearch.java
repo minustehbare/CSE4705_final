@@ -4,6 +4,7 @@ import CSE4705_final.State.*;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedSet;
 
 public class ABSearch{
   
@@ -65,5 +66,17 @@ public class ABSearch{
   //TODO: when MaxValue works, paste it here and fix it up real nice for MinValue
   private Move MinValue(Partition _state, int gen, Move a, Move b){
     return null;
+  }
+
+  public static void main(String[] args){
+    //create a partition
+    NodeSet _refSet = new NodeSet();
+    SortedSet<Integer> _enclosedNodes;
+    int gen;
+    Partition _partition;
+
+
+    _partition = new Partition(_refSet, _enclosedNodes, gen);
+
   }
 }
