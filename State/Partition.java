@@ -19,6 +19,8 @@ public class Partition {
     private final int _gen;
     private final boolean _direct;
 
+    public static final int SAVE_DEPTH = 3;
+
     public Partition(NodeSet refSet, SortedSet<Integer> enclosedNodes, int gen) {
         _refSet = refSet;
 //        _partID = _NextID.getAndIncrement();
@@ -422,11 +424,11 @@ public class Partition {
         return getNeighboringNodes(index, cache);
     }
 
-    public PartitionState getPartitionState(int gen, boolean cache) {
+    public PartitionState getPartitionState(boolean cache) {
         boolean blackFound = false;
         boolean whiteFound = false;
         for (int i : _enclosedSet) {
-            NodeState iState = getNodeState(i, gen, cache);
+            NodeState iState = getNodeState(i, cache);
             if (iState == NodeState.BLACK) {
                 blackFound = true;
             } else if (iState == NodeState.WHITE) {
@@ -448,10 +450,10 @@ public class Partition {
         }
     }
 
-    public int getFreeStates(int gen, boolean cache) {
+    public int getFreeStates(boolean cache) {
         int freeCount = 0;
         for (int i : _enclosedSet) {
-            NodeState iState = getNodeState(i, gen, cache);
+            NodeState iState = getNodeState(i, cache);
             if (iState == NodeState.EMPTY) {
                 freeCount++;
             }
@@ -459,23 +461,48 @@ public class Partition {
         return freeCount;
     }
 
-    public Set<Integer> getWhiteQueens(int gen, boolean cache) {
+    public Set<Integer> getWhiteQueens(boolean cache) {
         Set<Integer> indicies = new HashSet<Integer>();
         for (int i : _enclosedSet) {
-            if (getNodeState(i, gen, cache) == NodeState.WHITE) {
+            if (getNodeState(i, cache) == NodeState.WHITE) {
                 indicies.add(i);
             }
         }
         return indicies;
     }
 
-    public Set<Integer> getBlackQueens(int gen, boolean cache) {
+    public Set<Integer> getBlackQueens(boolean cache) {
         Set<Integer> indicies = new HashSet<Integer>();
         for (int i : _enclosedSet) {
-            if (getNodeState(i, gen, cache) == NodeState.BLACK) {
+            if (getNodeState(i, cache) == NodeState.BLACK) {
                 indicies.add(i);
             }
         }
         return indicies;
+    }
+
+    private String getFullName(boolean cache) {
+        StringBuilder ret = new StringBuilder();
+        for (int index = 0; index <= 99; index++) {
+            NodeState iState = getNodeState(index, cache);
+            if (iState != NodeState.EMPTY) {
+                if (index <= 9) {
+                    ret.append(0);
+                }
+                ret.append(index);
+                ret.append(Node.stateToChar(iState));
+            }
+        }
+        return ret.toString();
+    }
+
+    public String getNamePrefix(boolean cache) {
+        String fullName = getFullName(cache);
+        return fullName.substring(0,fullName.length() / (3 * SAVE_DEPTH));
+    }
+
+    public String getNameSuffix(boolean cache) {
+        String fullName = getFullName(cache);
+        return fullName.substring(fullName.length() / (3 * SAVE_DEPTH));
     }
 }
