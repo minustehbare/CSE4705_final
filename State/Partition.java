@@ -114,6 +114,9 @@ public class Partition {
                 iniRowOffset = iniColOffset;
                 iniColOffset = t;
             }
+
+            iniRowOffset = -iniRowOffset;
+            iniColOffset = -iniColOffset;
             // Add the new permutation!
             options.add(new Partition(_refSet,
                     modifyEnclosed(iniRowOffset, iniColOffset, fv, fh, sa),
