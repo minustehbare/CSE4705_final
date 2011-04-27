@@ -12,27 +12,27 @@ public class ABSearch{
   public Move ABStart(Partition _state, int gen, boolean _isBlack){
     //is there a java thing for infinity?
     if(_isBlack)
-      return (MaxValue(_state, gen, new Move(null, null,-9999), new Move(null, null, 9999)));
-    return   (MinValue(_state, gen, new Move(null, null,-9999), new Move(null, null, 9999)));
+      return (MaxValue(_state, gen, null, null));
+    return   (MinValue(_state, gen, null, null));
   }
   
   private Move MaxValue(Partition _state, int gen, Move a, Move b){
     //Get the index of the white queen
-    Set<Integer> _whiteQueens = _state.getWhiteQueens(gen, true);
+    Set<Integer> _whiteQueens = _state.getWhiteQueens();
     Iterator<Integer> WQItr = _whiteQueens.iterator();
     Integer WQindex = WQItr.next();
 
     //if the white queen can't move
-    if(_state.getReachableNodes(WQindex, true).isEmpty())
+    if(_state.getReachableNodes(WQindex).isEmpty())
       return null; //TODO: This will be the best move for black to take with a value that is the number of spaces blackQ can get to.
 
     //Get the index of the black queen
-    Set<Integer> _blackQueens = _state.getWhiteQueens(gen, true);
+    Set<Integer> _blackQueens = _state.getWhiteQueens();
     Iterator<Integer> BQItr = _whiteQueens.iterator();
     Integer BQindex = BQItr.next();
 
     //List of black's possible moves.
-    List<Node> _moves = _state.getReachableNodes(BQindex, true);
+    List<Node> _moves = _state.getReachableNodes(BQindex);
 
     //We can't move!
     if (_moves.isEmpty())
@@ -48,7 +48,7 @@ public class ABSearch{
     while(_itrM.hasNext()){
       //Get an iterator oh shots you can make from the first possible move
       _tempVertex = _itrM.next();
-      _shots = _state.getReachableNodes(_tempVertex.getIndex(), true);
+      _shots = _state.getReachableNodes(_tempVertex.getIndex());
       _itrS = _shots.listIterator();
 
       //Run through the shots, build new states, and run them recursively
