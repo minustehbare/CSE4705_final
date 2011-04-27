@@ -11,13 +11,8 @@ public class Partition {
 
     private final NodeSet _refSet;
     private final SortedSet<Integer> _enclosedSet;
-    private final int _rowOffset;
-    private final int _colOffset;
-    private final boolean _flipVertical;
-    private final boolean _flipHorizontal;
-    private final boolean _swapAxis;
     private final int _gen;
-    private final boolean _direct;
+    private final ModificationSet _modSet;
 
     public static final int SAVE_DEPTH = 3;
     private static final boolean CACHE_ENABLED = true;
@@ -26,25 +21,15 @@ public class Partition {
         _refSet = refSet;
         _enclosedSet = enclosedNodes;
         _gen = gen;
-        _rowOffset = 0;
-        _colOffset = 0;
-        _flipVertical = false;
-        _flipHorizontal = false;
-        _swapAxis = false;
-        _direct = true;
+        _modSet = new ModificationSet();
     }
 
     private Partition(NodeSet refSet, SortedSet<Integer> enclosedNodes, int gen,
-            int ro, int co, boolean fv, boolean fh, boolean sa) {
+            ModificationSet modSet) {
         _refSet = refSet;
         _enclosedSet = enclosedNodes;
         _gen = gen;
-        _rowOffset = ro;
-        _colOffset = co;
-        _flipVertical = fv;
-        _flipHorizontal = fh;
-        _swapAxis = sa;
-        _direct = false;
+        _modSet = modSet;
     }
 
     private SortedSet<Integer> modifyEnclosed(int ro, int co, boolean fv, boolean fh, boolean sa) {
@@ -67,43 +52,23 @@ public class Partition {
     }
 
     public NodeState getNodeState(int row, int col) {
-        return _refSet.getNodeState(getModifiedIndex(row,col), _gen, CACHE_ENABLED);
+        return _refSet.getNodeState(_modSet.modifyIndex(row,col), _gen, CACHE_ENABLED);
     }
 
     public NodeState getNodeState(int index) {
-        return _refSet.getNodeState(getModifiedIndex(index), _gen, CACHE_ENABLED);
+        return _refSet.getNodeState(_modSet.modifyIndex(index), _gen, CACHE_ENABLED);
     }
 
     private NodeState getFutureNodeState(int index, int gen) {
-        return _refSet.getNodeState(getModifiedIndex(index), gen, CACHE_ENABLED);
+        return _refSet.getNodeState(_modSet.modifyIndex(index), gen, CACHE_ENABLED);
     }
 
     public Node getNode(int row, int col) {
-        return _refSet.getNode(getModifiedIndex(row,col), _gen, CACHE_ENABLED);
+        return _refSet.getNode(_modSet.modifyIndex(row,col), _gen, CACHE_ENABLED);
     }
 
     public Node getNode(int index) {
-        return _refSet.getNode(getModifiedIndex(index), _gen, CACHE_ENABLED);
-    }
-
-    private int getModifiedIndex(int index) {
-        return getModifiedIndex(index / 10, index % 10);
-    }
-
-    private int getModifiedIndex(int row, int col) {
-        // We need to retranslate everything.
-        int crow = row;
-        int ccol = col;
-        // flip vertical
-        if (_flipVertical) { crow = -crow; }
-        // flip horizontal
-        if (_flipHorizontal) { ccol = -ccol; }
-        // swap axis
-        if (_swapAxis) { int t = crow; crow = ccol; ccol = t; }
-        // apply offsets
-        crow -= _rowOffset;
-        ccol -= _colOffset;
-        return Node.getIndex(crow, ccol);
+        return _refSet.getNode(_modSet.modifyIndex(index), _gen, CACHE_ENABLED);
     }
 
     public boolean containsNode(int row, int col) {
@@ -150,7 +115,7 @@ public class Partition {
             // Add the new permutation!
             options.add(new Partition(_refSet,
                     modifyEnclosed(iniRowOffset, iniColOffset, fv, fh, sa),
-                    _gen, iniRowOffset, iniColOffset, fv, fh, sa));
+                    _gen, new ModificationSet(iniRowOffset, iniColOffset, fv, fh, sa)));
         }
 
         // Time to choose a partition!
@@ -186,6 +151,12 @@ public class Partition {
         // First off, check to make sure this isn't unblocking a node.
         if (getNodeState(index) == NodeState.BLOCKED && newState != NodeState.BLOCKED) {
             throw new IllegalArgumentException("Cannot unblock a node in a partition.");
+
+        // If the change is NOT to block something, then we don't need to search
+        // for a split partition.
+//        } else if (newState != NodeState.BLOCKED) {
+//            int nextGen = _refSet.forkNode(index, _gen, newState);
+//            Partition retPart = new Partition(_refSet, newEnclosedSet, nextGen);
         } else {
             // Make the change in the refSet.
             int nextGen = _refSet.forkNode(index, _gen, newState);
@@ -226,15 +197,9 @@ public class Partition {
             }
             // Create partitions.
             Set<Partition> parts = new HashSet<Partition>();
-            if (_direct) {
-                for (int p : setMap.keySet()) {
-                    parts.add(new Partition(_refSet, setMap.get(p), nextGen));
-                }
-            } else {
-                for (int p : setMap.keySet()) {
-                    parts.add(new Partition(_refSet, setMap.get(p), nextGen,
-                            _rowOffset, _colOffset, _flipVertical, _flipHorizontal, _swapAxis));
-                }
+            for (int p : setMap.keySet()) {
+                parts.add(new Partition(_refSet, setMap.get(p), nextGen,
+                        _modSet));
             }
             return parts;
         }
@@ -244,6 +209,84 @@ public class Partition {
         public IntPtr(int val) { _val = val; }
         public int get() { return _val; }
         public void set(int val) { _val = val; }
+    }
+
+    private class ModificationSet {
+        private final int _rowOffset;
+        private final int _colOffset;
+        private final boolean _flipRows;
+        private final boolean _flipCols;
+        private final boolean _swapAxis;
+        private final boolean _direct;
+
+        public ModificationSet() {
+            _rowOffset = 0;
+            _colOffset = 0;
+            _flipRows = false;
+            _flipCols = false;
+            _swapAxis = false;
+            _direct = true;
+        }
+
+        public ModificationSet(int rowOffset, int colOffset, boolean flipRows,
+                boolean flipCols, boolean swapAxis) {
+            _rowOffset = rowOffset;
+            _colOffset = colOffset;
+            _flipRows = flipRows;
+            _flipCols = flipCols;
+            _swapAxis = swapAxis;
+            _direct = false;
+        }
+
+        public int modifyIndex(int unmodRow, int unmodCol) {
+            if (_direct) {
+                return Node.getIndex(unmodRow, unmodCol);
+            } else {
+                // FIRST, flips rows/cols.
+                int row = (_flipRows ? -unmodRow : unmodRow);
+                int col = (_flipCols ? -unmodCol : unmodCol);
+                // SECOND, swap row/col.
+                if (_swapAxis) {
+                    int t = row;
+                    row = col;
+                    col = t;
+                }
+                // THIRD, apply offsets.
+                return Node.getIndex(row + _rowOffset, col + _colOffset);
+            }
+        }
+
+        public int modifyIndex(int unmodIndex) {
+            return modifyIndex(unmodIndex / 10, unmodIndex % 10);
+        }
+
+        public int unmodifyIndex(int modRow, int modCol) {
+            if (_direct) {
+                return Node.getIndex(modRow, modCol);
+            } else {
+                // FIRST, subtract the offsets.
+                int row = modRow - _rowOffset;
+                int col = modCol - _colOffset;
+                // SECOND, swap row/col.
+                if (_swapAxis) {
+                    int t = row;
+                    row = col;
+                    col = t;
+                }
+                // THIRD, flip rows/cols.
+                row = (_flipRows ? -row : row);
+                col = (_flipCols ? -col : col);
+                return Node.getIndex(row, col);
+            }
+        }
+
+        public int unmodifyIndex(int modIndex) {
+            return unmodifyIndex(modIndex / 10, modIndex % 10);
+        }
+
+        public boolean isDirect() {
+            return _direct;
+        }
     }
 
     /***************************************************************************
