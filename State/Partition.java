@@ -3,6 +3,8 @@ package CSE4705_final.State;
 import java.util.concurrent.atomic.*;
 import java.util.*;
 
+import CSE4705_final.Client.*;
+
 /**
  *
  * @author Ethan Levine
@@ -147,25 +149,13 @@ public class Partition {
         return options.iterator().next();
     }
 
-    private Set<Partition> forkPartition(int index, NodeState newState) {
-        // First off, check to make sure this isn't unblocking a node.
-        if (getNodeState(index) == NodeState.BLOCKED && newState != NodeState.BLOCKED) {
-            throw new IllegalArgumentException("Cannot unblock a node in a partition.");
-
-        // If the change is NOT to block something, then we don't need to search
-        // for a split partition.
-//        } else if (newState != NodeState.BLOCKED) {
-//            int nextGen = _refSet.forkNode(index, _gen, newState);
-//            Partition retPart = new Partition(_refSet, newEnclosedSet, nextGen);
-        } else {
-            // Make the change in the refSet.
-            int nextGen = _refSet.forkNode(index, _gen, newState);
+    private List<Partition> getSplitPartitions(int futureGen) {
 
             Map<Integer,IntPtr> partMap = new HashMap<Integer,IntPtr>(100);
             int nextPart = 0;
             for (int i : _enclosedSet) {
                 // note:  this should be in order.
-                NodeState iState = getFutureNodeState(i, nextGen);
+                NodeState iState = getFutureNodeState(i, futureGen);
                 if (iState != NodeState.BLOCKED) {
                     // the state is not blocked.
                     // check north node.
@@ -196,14 +186,43 @@ public class Partition {
                 setMap.get(p).add(i);
             }
             // Create partitions.
-            Set<Partition> parts = new HashSet<Partition>();
+            List<Partition> parts = new LinkedList<Partition>();
             for (int p : setMap.keySet()) {
-                parts.add(new Partition(_refSet, setMap.get(p), nextGen,
+                parts.add(new Partition(_refSet, setMap.get(p), futureGen,
                         _modSet));
             }
             return parts;
+    }
+
+    public List<Partition> forkMove(ClientMove move, boolean isMovingPlayerBlack) {
+        // This always blocks a state.
+        int nextGen = _refSet.forkMove(move, isMovingPlayerBlack, _gen);
+        return getSplitPartitions(nextGen);
+    }
+
+    public List<Partition> forkNode(int index, NodeState newState) {
+        // First off, check to make sure this isn't unblocking a node.
+        if (getNodeState(index) == NodeState.BLOCKED && newState != NodeState.BLOCKED) {
+            throw new IllegalArgumentException("Cannot unblock a node in a partition.");
+
+        // If the change is NOT to block something, then we don't need to search
+        // for a split partition.
+        } else if (newState != NodeState.BLOCKED) {
+            int nextGen = _refSet.forkNode(index, _gen, newState);
+            SortedSet<Integer> newEnclosedSet = new TreeSet<Integer>(_enclosedSet);
+            newEnclosedSet.remove(index);
+            Partition retPart = new Partition(_refSet, newEnclosedSet, nextGen);
+            List<Partition> retList = new LinkedList<Partition>();
+            retList.add(retPart);
+            return retList;
+        } else {
+            // Make the change in the refSet.
+            int nextGen = _refSet.forkNode(index, _gen, newState);
+
+            return getSplitPartitions(nextGen);
         }
     }
+
     private class IntPtr {
         private int _val;
         public IntPtr(int val) { _val = val; }
