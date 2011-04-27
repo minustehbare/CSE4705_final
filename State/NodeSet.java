@@ -107,41 +107,45 @@ public class NodeSet {
      */
     public NodeState getNodeState(int index, int generation, boolean cache) {
         final int cacheCutoff = 10;
-        // Get the node map.
-        Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
-        GenTreeNode genNode;
-        // Get the most relevant node.
-        genNode = _genMap.get(generation);
+        if (index < 0 || index >= 100) {
+            return NodeState.BLOCKED;
+        } else {
+            // Get the node map.
+            Map<Integer, NodeState> nodeMap = _nodeMaps.get(index);
+            GenTreeNode genNode;
+            // Get the most relevant node.
+            genNode = _genMap.get(generation);
 
-        NodeState ret = null;
-        int canCache = 0;
-        try {
-            if (nodeMap.containsKey(generation)) {
-                ret = nodeMap.get(generation);
-            } else if (genNode.isRoot()) {
-                throw new StateException ("Requested node not found.");
-            } else {
-                canCache++;
-                GenTreeNode curNode = genNode.getParent();
-                while (ret == null) {
-                    if (nodeMap.containsKey(curNode.getGeneration())) {
-                        ret = nodeMap.get(curNode.getGeneration());
-                    } else if (curNode.isRoot()) {
-                        throw new StateException ("Requested node not found.");
-                    } else {
-                        canCache++;
-                        curNode = curNode.getParent();
+            NodeState ret = null;
+            int canCache = 0;
+            try {
+                if (nodeMap.containsKey(generation)) {
+                    ret = nodeMap.get(generation);
+                } else if (genNode.isRoot()) {
+                    throw new StateException ("Requested node not found.");
+                } else {
+                    canCache++;
+                    GenTreeNode curNode = genNode.getParent();
+                    while (ret == null) {
+                        if (nodeMap.containsKey(curNode.getGeneration())) {
+                            ret = nodeMap.get(curNode.getGeneration());
+                        } else if (curNode.isRoot()) {
+                            throw new StateException ("Requested node not found.");
+                        } else {
+                            canCache++;
+                            curNode = curNode.getParent();
+                        }
                     }
                 }
+            } catch (StateException e) {
+                throw new StateException("Node at (" +
+                        index +")[" + generation + "] was not found.", e);
             }
-        } catch (StateException e) {
-            throw new StateException("Node at (" +
-                    index +")[" + generation + "] was not found.", e);
+            if (cache && canCache > cacheCutoff) {
+                nodeMap.put(generation, ret);
+            }
+            return ret;
         }
-        if (cache && canCache > cacheCutoff) {
-            nodeMap.put(generation, ret);
-        }
-        return ret;
     }
 
     /**

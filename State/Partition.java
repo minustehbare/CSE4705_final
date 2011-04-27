@@ -122,6 +122,7 @@ public class Partition {
 
         // Time to choose a partition!
         // Use ordering of stateToChar().
+        Set<Partition> removable = new HashSet<Partition>();
         for (int i = 0; i <= 99; i++) {
             char maxValue = 0;
             for (Partition p : options) {
@@ -135,12 +136,16 @@ public class Partition {
                 for (Partition p : options) {
                     if (p.containsNode(i)) {
                         if (Node.stateToChar(p.getNodeState(i)) < maxValue) {
-                            options.remove(p);
+                            removable.add(p);
                         }
                     } else {
-                        options.remove(p);
+                        removable.add(p);
                     }
                 }
+                for (Partition p : removable) {
+                    options.remove(p);
+                }
+                removable.clear();
             }
         }
         // There will always be at least one item in the set at this point.

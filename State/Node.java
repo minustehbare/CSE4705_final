@@ -84,7 +84,11 @@ public class Node {
      * @return the queried index
      */
     public static int getIndex(int row, int col) {
-        return col + row*10;
+        if (row < 0 || row >= 10 || col < 0 || col >= 10) {
+            return -1;
+        } else {
+            return col + row*10;
+        }
     }
 
     public int getIndex() {
