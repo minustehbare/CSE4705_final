@@ -225,6 +225,20 @@ public class NodeSet {
                 newNode.getState());
     }
 
+    public int forkMove(ClientMove move, boolean isMovingPlayerBlack, int parentGen) {
+        int newGen = _nextGen.getAndIncrement();
+        _genMap.put(newGen, new GenTreeNode(newGen, _genMap.get(parentGen)));
+        // get the maps for the from, to, shoot.
+        Map<Integer, NodeState> fromMap = _nodeMaps.get(Node.getIndex(move.getFromRow(), move.getFromCol()));
+        Map<Integer, NodeState> toMap = _nodeMaps.get(Node.getIndex(move.getToRow(), move.getToCol()));
+        Map<Integer, NodeState> shootMap = _nodeMaps.get(Node.getIndex(move.getShootRow(), move.getShootCol()));
+        // set "from" to blank, "to" to moving player, "shoot" to blocked.
+        fromMap.put(newGen, NodeState.EMPTY);
+        toMap.put(newGen, (isMovingPlayerBlack ? NodeState.BLACK : NodeState.WHITE));
+        shootMap.put(newGen, NodeState.BLOCKED);
+        return newGen;
+    }
+
     /**
      * Isolates a generation in a new NodeSet.  This should be called after a
      * move has been made, to conserve memory.  It will get information from an
