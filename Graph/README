@@ -1,9 +1,0 @@
-############################
-Classes used to represent
-the playing board.  The
-board holds a 10x10 array
-of nodes and supports
-methods for finding a node's
-neighbors, finding available
-moves, marking shots, etc.
-

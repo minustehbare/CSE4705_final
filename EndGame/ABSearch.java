@@ -46,7 +46,7 @@ public class ABSearch{
 
     //This is where the magic happens
     while(_itrM.hasNext()){
-      //Get an iterator oh shots you can make from the first possible move
+      //Get an iterator of shots you can make from the first possible move
       _tempVertex = _itrM.next();
       _shots = _state.getReachableNodes(_tempVertex.getIndex());
       _itrS = _shots.listIterator();

@@ -567,11 +567,21 @@ public class Partition {
 
     public String getNamePrefix() {
         String fullName = getFullName();
-        return fullName.substring(0,fullName.length() / (3 * SAVE_DEPTH));
+        //return fullName.substring(0,fullName.length() / (3 * SAVE_DEPTH));
+        return fullName.substring(0,fullName.length() - (fullName.length() % SAVE_DEPTH));
     }
 
     public String getNameSuffix() {
         String fullName = getFullName();
-        return fullName.substring(fullName.length() / (3 * SAVE_DEPTH));
+        //return fullName.substring(fullName.length() / (3 * SAVE_DEPTH));
+        String suffix = fullName.substring(fullName.length() - (fullName.length() % SAVE_DEPTH));
+        
+        //if the suffix is empty, return a default suffix that will never normally show up.
+        //This allows me to parse it the data a little easier when reading from the
+        //file.  If you would rather me do this on my end, let me know.
+        if (suffix.length()==0)
+          return("xx");
+        
+        return suffix;
     }
 }
