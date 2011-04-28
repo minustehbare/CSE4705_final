@@ -18,6 +18,10 @@ public class Partition {
 
     public static final int SAVE_DEPTH = 3;
     private static final boolean CACHE_ENABLED = true;
+    
+    private PartitionState _c_state;
+    private LinkedList<Integer> _c_blackQueens;
+    private LinkedList<Integer> _c_whiteQueens;
 
     public Partition(NodeSet refSet, SortedSet<Integer> enclosedNodes, int gen) {
         _refSet = refSet;
@@ -494,28 +498,33 @@ public class Partition {
     }
 
     public PartitionState getPartitionState() {
-        boolean blackFound = false;
-        boolean whiteFound = false;
-        for (int i : _enclosedSet) {
-            NodeState iState = getNodeState(i);
-            if (iState == NodeState.BLACK) {
-                blackFound = true;
-            } else if (iState == NodeState.WHITE) {
-                whiteFound = true;
-            }
-        }
-        if (blackFound) {
-            if (whiteFound) {
-                return PartitionState.CONTESTED;
-            } else {
-                return PartitionState.BLACK_OWNED;
-            }
+        if (_c_state != null) {
+            return _c_state;
         } else {
-            if (whiteFound) {
-                return PartitionState.WHITE_OWNED;
-            } else {
-                return PartitionState.DEAD;
+            boolean blackFound = false;
+            boolean whiteFound = false;
+            for (int i : _enclosedSet) {
+                NodeState iState = getNodeState(i);
+                if (iState == NodeState.BLACK) {
+                    blackFound = true;
+                } else if (iState == NodeState.WHITE) {
+                    whiteFound = true;
+                }
             }
+            if (blackFound) {
+                if (whiteFound) {
+                    _c_state = PartitionState.CONTESTED;
+                } else {
+                    _c_state = PartitionState.BLACK_OWNED;
+                }
+            } else {
+                if (whiteFound) {
+                    _c_state = PartitionState.WHITE_OWNED;
+                } else {
+                    _c_state = PartitionState.DEAD;
+                }
+            }
+            return _c_state;
         }
     }
 
@@ -530,24 +539,32 @@ public class Partition {
         return freeCount;
     }
 
-    public Set<Integer> getWhiteQueens() {
-        Set<Integer> indicies = new HashSet<Integer>();
-        for (int i : _enclosedSet) {
-            if (getNodeState(i) == NodeState.WHITE) {
-                indicies.add(i);
+    public List<Integer> getWhiteQueens() {
+        if (_c_whiteQueens != null) {
+            return _c_whiteQueens;
+        } else {
+            _c_whiteQueens = new LinkedList<Integer>();
+            for (int i : _enclosedSet) {
+                if (getNodeState(i) == NodeState.WHITE) {
+                    _c_whiteQueens.add(i);
+                }
             }
+            return _c_whiteQueens;
         }
-        return indicies;
     }
 
-    public Set<Integer> getBlackQueens() {
-        Set<Integer> indicies = new HashSet<Integer>();
-        for (int i : _enclosedSet) {
-            if (getNodeState(i) == NodeState.BLACK) {
-                indicies.add(i);
+    public List<Integer> getBlackQueens() {
+        if (_c_blackQueens != null) {
+            return _c_blackQueens;
+        } else {
+            _c_blackQueens = new LinkedList<Integer>();
+            for (int i : _enclosedSet) {
+                if (getNodeState(i) == NodeState.BLACK) {
+                    _c_blackQueens.add(i);
+                }
             }
+            return _c_blackQueens;
         }
-        return indicies;
     }
 
     private String getFullName() {
