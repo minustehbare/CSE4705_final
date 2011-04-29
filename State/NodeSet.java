@@ -414,34 +414,6 @@ public class NodeSet {
         // Include the last row.
         printout.append(" └─┴─┴─┴─┴─┴─┴─┴─┴─┴─┘\n");
         return printout.toString();
-//        // Get the nodes.
-//        List<NodeState> nodes = new ArrayList<NodeState>();
-//        for (int i = 0; i <= 99; i++) {
-//            nodes.add(i, getNodeState(i % 10, i / 10, generation, false));
-//        }
-//        // create a string - initialize to the top.
-//        String printout = new String("0 1 2 3 4 5 6 7 8 9\n___________________\n");
-//        //StringBuilder printout = new StringBuilder("0 1 2 3 4 5 6 7 8 9\n___________________\n");
-//        // For each row form i=0 to i=9...
-//        for (int i = 0; i <= 9; i++) {
-//            // Print out the first liner.
-//            printout.concat(i+"|");
-//            // Now, for each column from j=0 to j=9...
-//            for (int j = 0; j <= 9; j++) {
-//                // Print out the column and a liner.
-//                printout.concat(Character.toString(Node.stateToChar(nodes.get(Node.getIndex(i,j)))));
-//                printout.concat("|");
-//            }
-//            // Include the newline!
-//            printout.concat("\n");
-//            // If this is not the last row (i=9), print out a filler row.
-//            if (i < 9) {
-//                printout.concat("___________________\n");
-//            }
-//        }
-//        // Include the last row.
-//        printout.concat("___________________");
-//        return printout.toString();
     }
   public static void main(String[] args){
     //create a partition
