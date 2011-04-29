@@ -183,6 +183,11 @@ public class Partition {
                             // Set it to point to this partition.
                             partMap.get(i-1).set(partMap.get(i-10).get());
                         }
+                        // check northeast node.
+                        if ((i % 10) < 9 && partMap.containsKey(i-9)) {
+                            // Set it to point to this partition.
+                            partMap.get(i-9).set(partMap.get(i-10).get());
+                        }
                     // check northwest node
                     } else if ((i % 10) > 0 && partMap.containsKey(i-11)) {
                         // reuse it
@@ -191,6 +196,19 @@ public class Partition {
                         if ((i % 10) > 0 && partMap.containsKey(i-1)) {
                             // Set it to point to this partition.
                             partMap.get(i-1).set(partMap.get(i-11).get());
+                        }
+                        // check northeast node.
+                        if ((i % 10) < 9 && partMap.containsKey(i-9)) {
+                            // set it to point to this
+                            partMap.get(i-9).set(partMap.get(i-11).get());
+                        }
+                    // check northeast node
+                    } else if ((i % 10) < 9 && partMap.containsKey(i-9)) {
+                        // reuse it
+                        partMap.put(i, partMap.get(i-9));
+                        // check west node.
+                        if ((i % 10) > 0 && partMap.containsKey(i-1)) {
+                            partMap.get(i-1).set(partMap.get(i-9).get());
                         }
                     // check west node
                     } else if ((i % 10) > 0 && partMap.containsKey(i-1)) {
