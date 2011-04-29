@@ -10,11 +10,12 @@ import CSE4705_final.State.*;
 public abstract class PartitionBasedAI extends BareAI {
     
     protected PartitionSet _currentSet;
+    protected NodeSet _underlyingSet;
     
     protected PartitionBasedAI(boolean isPlayerBlack) {
         // note: AI is always WHITE.
-        NodeSet ns = new NodeSet(isPlayerBlack);
-        _currentSet = new PartitionSet(ns.getRootPartition());
+        _underlyingSet = new NodeSet(isPlayerBlack);
+        _currentSet = new PartitionSet(_underlyingSet.getRootPartition());
     }
     
     @Override
@@ -25,9 +26,21 @@ public abstract class PartitionBasedAI extends BareAI {
     
     @Override
     protected final ClientMove getPlayerMoveAbstract(int timeRemaining) {
+        // Stop idling.
+        stopIdling();
         ClientMove move = getPlayerMove(timeRemaining);
         _currentSet = _currentSet.forkPartitionSet(move, false);
+        // Start idling.
+        startIdling();
         return move;
+    }
+    
+    protected void startIdling() {
+        // By default, do nothing.
+    }
+    
+    protected void stopIdling() {
+        // By default, do nothing.
     }
     
     protected void notifyOpponentMove(ClientMove move) {
