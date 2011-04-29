@@ -164,6 +164,31 @@ public class PartitionSet {
         return new PartitionSet(deadSet, whiteOwnedSet, blackOwnedSet, contestedSet);
     }
     
+    public Partition getContainingPartition(int index) {
+        for (Partition part : _deadParts) {
+            if (part.containsNode(index)) {
+                return part;
+            }
+        }
+        for (Partition part : _whiteOwnedParts) {
+            if (part.containsNode(index)) {
+                return part;
+            }
+        }
+        for (Partition part : _blackOwnedParts) {
+            if (part.containsNode(index)) {
+                return part;
+            }
+        }
+        for (Partition part : _contestedParts) {
+            if (part.containsNode(index)) {
+                return part;
+            }
+        }
+        // Not found in any partition...
+        throw new StateException ("Node with index [" + index + "] cannot be found in the partition set.");
+    }
+    
     public PartitionSet forkPartitionSet(Partition active, int index, NodeState newState) {
         return forkPartitionSetInternal(active, active.forkNode(index, newState));
     }
@@ -171,5 +196,14 @@ public class PartitionSet {
     public PartitionSet forkPartitionSet(Partition active, ClientMove move,
             boolean isMovingPlayerBlack) {
         return forkPartitionSetInternal(active, active.forkMove(move, isMovingPlayerBlack));
+    }
+    
+    public PartitionSet forkPartitionSet(int index, NodeState newState) {
+        return forkPartitionSet(getContainingPartition(index), index, newState);
+    }
+    
+    public PartitionSet forkPartitionSet(ClientMove move, boolean isMovingPlayerBlack) {
+        return forkPartitionSet(getContainingPartition(Node.getIndex(move.getFromRow(),
+                move.getFromCol())), move, isMovingPlayerBlack);
     }
 }
