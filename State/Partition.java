@@ -357,9 +357,11 @@ public class Partition {
         }
         offset = 0;
         // DOWN
+                    System.out.println("testtttt");
         while (containsNode(row + offset, col) &&
                 getNodeState(row + offset, col) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row + offset, col));
+            System.out.println("testtttt");
             offset++;
         }
         offset = 0;
@@ -454,7 +456,7 @@ public class Partition {
     }
 
     public List<Node> getReachableNodes(int index) {
-        return getReachableNodes(index);
+        return getReachableNodes(index / 10, index % 1);
     }
 
     public List<Integer> getNeighboringIndicies(int row, int col) {
@@ -473,7 +475,7 @@ public class Partition {
     }
 
     public List<Integer> getNeighboringIndicies(int index) {
-        return getNeighboringIndicies(index);
+        return getNeighboringIndicies(index / 10, index % 1);
     }
 
     public List<Node> getNeighboringNodes(int row, int col) {
@@ -493,7 +495,7 @@ public class Partition {
     }
 
     public List<Node> getNeighboringNodes(int index) {
-        return getNeighboringNodes(index);
+        return getNeighboringNodes(index / 10, index % 1);
     }
 
     public PartitionState getPartitionState() {
