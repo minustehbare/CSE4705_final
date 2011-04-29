@@ -1,5 +1,6 @@
 package CSE4705_final.Graph;
 
+import CSE4705_final.State.Partition;
 import java.io.*;
 import java.util.*;
 
@@ -17,7 +18,8 @@ public class ArticPointDFS {
    private static int numEdges;  // total number of edges in a graph
    private static int numBCC;  // number of biconnected components in a graph
    private static int dfsCounter = 1;  // will be used to assign dfsNum to each vertex
-   private ArrayList articPointList;
+   private Set<Integer> vertices;
+   private ArrayList<Vertex> articPointList;
    private ArrayList bccList;   
    private Stack stackVisited;  // a stack in which all visited edges are stored during DFS
    private Edge _e;
@@ -28,36 +30,42 @@ public class ArticPointDFS {
     * search.
     * @param numV total number of vertices in a graph.
     */   
-   public ArticPointDFS(int numV) {
-      Integer n = new Integer(numV);
-      numVertices = n.intValue();      
-      // Create an array to set up all vertices in a graph
-      vArray = new Vertex[numVertices];
-      for(int i=0; i < numVertices; i++) {
-         vArray[i] = new Vertex(i);
-      } 
-      articPointList = new ArrayList();
-      bccList = new ArrayList();
-      stackVisited = new Stack();
+   public ArticPointDFS() {
+      numVertices = 100;
+      vertices = new HashSet<Integer>();
       }
    
-    public ArrayList runArticPoint(java.util.LinkedList<Edge> _edges){
+   public Set<Integer> runArticPoint(Partition _partition){
+      vArray = new Vertex[numVertices];
       //add edges
-      while(_edges.size()!=0){
-        _e = _edges.removeFirst();
-        this.addEdge((_e.v).id ,(_e.x).id);
+      SortedSet<Integer> _enclosedSet = _partition.getEnclosedSet();
+      for (Integer _node : _enclosedSet){
+        //add a new vertex
+        vArray[_node] = new Vertex(_node);
+        vertices.add(_node);
+        //upper left
+        if(_partition.containsNode(_node-11))
+          this.addEdge(_node-11,_node);
+        //upper
+        if(_partition.containsNode(_node-10))
+          this.addEdge(_node-10,_node);
+        //upper right
+        if(_partition.containsNode(_node-9))
+          this.addEdge(_node-9,_node);
+        //left
+        if(_partition.containsNode(_node-1))
+          this.addEdge(_node-1,_node);
       }
       // Determine the starting vertex for search
-      Vertex startVertex = vArray[0];  
-      
+      Vertex startVertex = vArray[_enclosedSet.first()];
       //run it
       for (int j=0; j <100; j++) {
          ArticPointDFS.dfsCounter = 1;
          ArticPointDFS.numBCC = 0;
-         this.articPointList = new ArrayList();
+         this.articPointList = new ArrayList<Vertex>();
          this.bccList = new ArrayList();
          this.stackVisited = new Stack();
-         for (int i=0; i<numVertices; i++) {
+         for (Integer i : vertices) {
             Vertex v = vArray[i];
             v.dfslevel = 0;
             v.dfsnum = -1;
@@ -67,9 +75,13 @@ public class ArticPointDFS {
          this.doArticPointDFS(startVertex);
       }
       
-      //print results
-      //this.showResult();
-      return (articPointList);
+      //Create return
+      Set<Integer> _ret = new HashSet<Integer>();
+    Iterator<Vertex> it = articPointList.iterator();
+    while(it.hasNext()){
+      _ret.add(it.next().id);
+    }
+      return (_ret);
     }
    
    /**
@@ -270,7 +282,7 @@ public class ArticPointDFS {
       		" 'N' represents the number of vertices in the graph,\n and each " +
       		"pair u v represents an edge between vertices u and v."+
       		"\n\n Input Note : The first line MUST contain ONLY the number of vertices."+
-      		" Then,\n\t      a pair of vertices seperated by space can follow from "+
+      		"Then,\n\t      a pair of vertices seperated by space can follow from "+
       		"the\n\t      second line. And, ONLY ONE of any duplicate edges such"+
       		" as\n\t      (u,v) and (v,u) should be entered.");
       System.out.println(" Input Example : A graph of 5 vertices and e(0,1), "+
