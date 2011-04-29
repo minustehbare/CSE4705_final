@@ -386,16 +386,17 @@ public class NodeSet {
      * @return a string containing the printout
      */
     public String printGen(int generation) {
-        // Get the nodes.
+                // Get the nodes.
         List<NodeState> nodes = new ArrayList<NodeState>();
         for (int i = 0; i <= 99; i++) {
             nodes.add(i, getNodeState(i % 10, i / 10, generation, false));
         }
         // create a string - initialize to the top.
-        StringBuilder printout = new StringBuilder("┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐\n");
+        StringBuilder printout = new StringBuilder(" 0 1 2 3 4 5 6 7 8 9\n ┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐\n");
         // For each row form i=0 to i=9...
         for (int i = 0; i <= 9; i++) {
             // Print out the first liner.
+            printout.append(i);
             printout.append('│');
             // Now, for each column from j=0 to j=9...
             for (int j = 0; j <= 9; j++) {
@@ -407,11 +408,32 @@ public class NodeSet {
             printout.append('\n');
             // If this is not the last row (i=9), print out a filler row.
             if (i < 9) {
-                printout.append("├─┼─┼─┼─┼─┼─┼─┼─┼─┼─┤\n");
+                printout.append(" ├─┼─┼─┼─┼─┼─┼─┼─┼─┼─┤\n");
             }
         }
         // Include the last row.
-        printout.append("└─┴─┴─┴─┴─┴─┴─┴─┴─┴─┘");
+        printout.append(" └─┴─┴─┴─┴─┴─┴─┴─┴─┴─┘\n");
         return printout.toString();
     }
+  public static void main(String[] args){
+    //create a partition
+    NodeSet _refSet = new NodeSet();
+    Partition _p = _refSet.getRootPartition();
+    _p.print();
+    List<Partition> _lp1 = _p.forkNode(11, NodeState.BLOCKED);
+    Partition _p1 = _lp1.get(0);
+    List<Partition> _lp2 = _p1.forkNode(21, NodeState.BLOCKED);
+    Partition _p2 = _lp2.get(0);
+    List<Partition> _lp3 = _p2.forkNode(41, NodeState.BLOCKED);
+    Partition _p3 = _lp3.get(0);
+    List<Partition> _lp4 = _p3.forkMove(new ClientMove(3,0,1,0,0,1),true);
+    Partition _p4 = _lp4.get(0);
+    List<Partition> _lp5 = _p4.forkMove(new ClientMove(6,0,3,0,3,1),false);
+    Partition _p5 = _lp5.get(0);
+    List<Partition> _lp6 = _p5.forkNode(40, NodeState.BLOCKED);
+    Partition _p6 = _lp6.get(0);
+    _p6.print();
+    //System.out.println(""+_move._from+"|"+_move._to+"|"+_move._shot);
+
+  }
 }

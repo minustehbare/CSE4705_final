@@ -638,6 +638,6 @@ public class Partition {
         return suffix;
     }
     public void print(){
-      _refSet.printGen(_gen);
+      System.out.print(_refSet.printGen(_gen));
     }
 }
