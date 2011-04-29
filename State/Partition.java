@@ -357,7 +357,6 @@ public class Partition {
         }
         offset = 1;
         // DOWN
-                    System.out.println("testtttt");
         while (containsNode(row + offset, col) &&
                 getNodeState(row + offset, col) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row + offset, col));

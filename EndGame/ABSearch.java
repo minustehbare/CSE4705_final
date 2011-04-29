@@ -177,8 +177,6 @@ public class ABSearch{
     List<Partition> _lp6 = _p5.forkNode(40, NodeState.BLOCKED);
     Partition _p6 = _lp6.get(0);
 
-    List<Integer> _moves = _p6.getReachableIndicies(3);
-
     ABSearch _a = new ABSearch();
     Move _move = _a.ABStart(_p6,true);
     System.out.println(""+_move._from+_move._to+_move._shot);
