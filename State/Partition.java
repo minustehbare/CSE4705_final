@@ -55,6 +55,10 @@ public class Partition {
     public int enclosedCount() {
         return _enclosedSet.size();
     }
+    
+    public SortedSet<Integer> getEnclosedSet() {
+        return Collections.unmodifiableSortedSet(_enclosedSet);
+    }
 
     public NodeState getNodeState(int row, int col) {
         return _refSet.getNodeState(_modSet.modifyIndex(row,col), _gen, CACHE_ENABLED);
