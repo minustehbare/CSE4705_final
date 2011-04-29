@@ -10,8 +10,7 @@ public class Node {
 
     // The variables of this node state
     private final NodeState _state;
-    private final int _row;
-    private final int _col;
+    private final int _index;
     private final int _gen;
 
     /**
@@ -23,8 +22,11 @@ public class Node {
      * @param generation the generation of the node
      */
     public Node(int row, int col, NodeState state, int generation) {
-        _row = row;
-        _col = col;
+        this(Node.getIndex(row, col), state, generation);
+    }
+    
+    public Node(int index, NodeState state, int generation) {
+        _index = index;
         _state = state;
         _gen = generation;
     }
@@ -35,7 +37,7 @@ public class Node {
      * @return the row of this node (between 0 and 9)
      */
     public int getRow() {
-        return _row;
+        return _index / 10;
     }
 
     /**
@@ -44,7 +46,7 @@ public class Node {
      * @return the column of this node (between 0 and 9)
      */
     public int getCol() {
-        return _col;
+        return _index % 10;
     }
 
     /**
@@ -73,7 +75,7 @@ public class Node {
      * @return the new node object
      */
     public Node forkState(NodeState newState) {
-        return new Node(_row, _col, newState, _gen);
+        return new Node(_index, newState, _gen);
     }
 
     /**
@@ -92,7 +94,7 @@ public class Node {
     }
 
     public int getIndex() {
-        return getIndex(_row, _col);
+        return _index;
     }
 
     /**
