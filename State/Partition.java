@@ -173,11 +173,26 @@ public class Partition {
                     if (partMap.containsKey(i-10)) {
                         // the north node is in a partition - use it
                         partMap.put(i, partMap.get(i-10));
+                        // check northwest node.
+                        if ((i % 10) > 0 && partMap.containsKey(i-11)) {
+                            // Set it to point to this partition.
+                            partMap.get(i-11).set(partMap.get(i-10).get());
+                        }
                         // check west node.
                         if ((i % 10) > 0 && partMap.containsKey(i-1)) {
                             // Set it to point to this partition.
                             partMap.get(i-1).set(partMap.get(i-10).get());
                         }
+                    // check northwest node
+                    } else if ((i % 10) > 0 && partMap.containsKey(i-11)) {
+                        // reuse it
+                        partMap.put(i, partMap.get(i-11));
+                        // check west node.
+                        if ((i % 10) > 0 && partMap.containsKey(i-1)) {
+                            // Set it to point to this partition.
+                            partMap.get(i-1).set(partMap.get(i-11).get());
+                        }
+                    // check west node
                     } else if ((i % 10) > 0 && partMap.containsKey(i-1)) {
                         partMap.put(i, partMap.get(i-1));
                     } else {
