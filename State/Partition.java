@@ -326,7 +326,7 @@ public class Partition {
 
     public List<Integer> getReachableIndicies(int row, int col) {
         List<Integer> retList = new LinkedList<Integer>();
-        int offset = 0;
+        int offset = 1;
         retList.add(Node.getIndex(row, col));
         // UP
         while (containsNode(row - offset, col) &&
@@ -334,28 +334,28 @@ public class Partition {
             retList.add(Node.getIndex(row - offset, col));
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // UP RIGHT
         while (containsNode(row - offset, col + offset) &&
                 getNodeState(row - offset, col + offset) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row - offset, col + offset));
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // RIGHT
         while (containsNode(row, col + offset) &&
                 getNodeState(row, col + offset) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row, col + offset));
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // DOWN RIGHT
         while (containsNode(row + offset, col + offset) &&
                 getNodeState(row + offset, col + offset) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row + offset, col + offset));
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // DOWN
                     System.out.println("testtttt");
         while (containsNode(row + offset, col) &&
@@ -364,21 +364,21 @@ public class Partition {
             System.out.println("testtttt");
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // DOWN LEFT
         while (containsNode(row + offset, col - offset) &&
                 getNodeState(row + offset, col - offset) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row + offset, col - offset));
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // LEFT
         while (containsNode(row, col - offset) &&
                 getNodeState(row, col - offset) == NodeState.EMPTY) {
             retList.add(Node.getIndex(row, col - offset));
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // UP LEFT
         while (containsNode(row - offset, col - offset) &&
                 getNodeState(row - offset, col - offset) == NodeState.EMPTY) {
@@ -394,7 +394,7 @@ public class Partition {
 
     public List<Node> getReachableNodes(int row, int col) {
         List<Node> retList = new LinkedList<Node>();
-        int offset = 0;
+        int offset = 1;
         Node t;
         retList.add(getNode(row, col));
         // UP
@@ -403,49 +403,49 @@ public class Partition {
             retList.add(t);
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // UP RIGHT
         while (containsNode(row - offset, col + offset) &&
                (t = getNode(row - offset, col + offset)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // RIGHT
         while (containsNode(row, col + offset) &&
                (t = getNode(row, col + offset)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // DOWN RIGHT
         while (containsNode(row + offset, col + offset) &&
                (t = getNode(row + offset, col + offset)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // DOWN
         while (containsNode(row + offset, col) &&
                (t = getNode(row + offset, col)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // DOWN LEFT
         while (containsNode(row + offset, col - offset) &&
                (t = getNode(row + offset, col - offset)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // LEFT
         while (containsNode(row, col - offset) &&
                (t = getNode(row, col - offset)).getState() == NodeState.EMPTY) {
             retList.add(t);
             offset++;
         }
-        offset = 0;
+        offset = 1;
         // UP LEFT
         while (containsNode(row - offset, col - offset) &&
                (t = getNode(row - offset, col - offset)).getState() == NodeState.EMPTY) {
