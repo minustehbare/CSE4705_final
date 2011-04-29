@@ -21,13 +21,15 @@ import CSE4705_final.State.*;
  */
 public class ClientMove {
     // The old location of the queen we wish to move.
-    private int _fromIndex;
+    private final int _fromIndex;
 
     // The new location of the queen we wish to move.
-    private int _toIndex;
+    private final int _toIndex;
 
     // The location we wish to shoot an arrow.
-    private int _shootIndex;
+    private final int _shootIndex;
+
+    private final int _value;
 
     /***
      * Directly creates a new move.  Keep in mind that this object is immutable.
@@ -44,12 +46,21 @@ public class ClientMove {
         _fromIndex = Node.getIndex(fromRow, fromCol);
         _toIndex = Node.getIndex(toRow, toCol);
         _shootIndex = Node.getIndex(shootRow, shootCol);
+        _value = 0;
     }
     
     public ClientMove(int fromIndex, int toIndex, int shootIndex) {
         _fromIndex = fromIndex;
         _toIndex = toIndex;
         _shootIndex = shootIndex;
+        _value = 0;
+    }
+    
+    public ClientMove(int fromIndex, int toIndex, int shootIndex, int value) {
+        _fromIndex = fromIndex;
+        _toIndex = toIndex;
+        _shootIndex = shootIndex;
+        _value = value;
     }
 
     /***
@@ -95,4 +106,5 @@ public class ClientMove {
     public int getShootIndex() { return _shootIndex; }
     public int getShootRow() { return _shootIndex / 10; }
     public int getShootCol() { return _shootIndex % 10; }
+    public int getValue() { return _value; }
 }
