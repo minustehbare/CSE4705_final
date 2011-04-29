@@ -30,6 +30,8 @@ public class ClientMove {
     private int _shootRow;
     private int _shootCol;
 
+    private int _value;
+
     /***
      * Directly creates a new move.  Keep in mind that this object is immutable.
      * @param fromRow the old row of the moving queen
@@ -48,6 +50,16 @@ public class ClientMove {
         _toCol = toCol;
         _shootRow = shootRow;
         _shootCol = shootCol;
+    }
+
+    public ClientMove(int from, int to, int shot, int value) {
+      _fromRow = from / 10;
+      _fromCol = from % 10;
+      _toRow = to / 10;
+      _toCol = to % 10;
+      _shootRow = shot / 10;
+      _shootCol = shot % 10;
+      _value = value;
     }
 
     /***
@@ -90,4 +102,8 @@ public class ClientMove {
     public int getToCol() { return _toCol; }
     public int getShootRow() { return _shootRow; }
     public int getShootCol() { return _shootCol; }
+    public int getFrom() { return _fromRow * 10 + _fromCol; }
+    public int getTo() { return _toRow * 10 + _toCol; }
+    public int getShot() { return _shootRow * 10 + _shootCol; }
+    public int getValue() { return _value; }
 }
