@@ -1,6 +1,5 @@
 package CSE4705_final.State;
 
-import java.util.concurrent.atomic.*;
 import java.util.*;
 
 import CSE4705_final.Client.*;
@@ -388,7 +387,7 @@ public class Partition {
     }
 
     public List<Integer> getReachableIndicies(int index) {
-        return getReachableIndicies(index);
+        return getReachableIndicies(index / 10, index % 10);
     }
 
     public List<Node> getReachableNodes(int row, int col) {
