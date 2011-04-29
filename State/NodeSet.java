@@ -389,10 +389,10 @@ public class NodeSet {
                 // Get the nodes.
         List<NodeState> nodes = new ArrayList<NodeState>();
         for (int i = 0; i <= 99; i++) {
-            nodes.add(i, getNodeState(i % 10, i / 10, generation, false));
+            nodes.add(i, getNodeState(i, generation, false));
         }
         // create a string - initialize to the top.
-        StringBuilder printout = new StringBuilder(" 0 1 2 3 4 5 6 7 8 9\n ┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐\n");
+        StringBuilder printout = new StringBuilder("  0 1 2 3 4 5 6 7 8 9\n ┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐\n");
         // For each row form i=0 to i=9...
         for (int i = 0; i <= 9; i++) {
             // Print out the first liner.
