@@ -26,13 +26,13 @@ public class EndPartition {
   //Constructor
   public EndPartition(Partition _p, boolean _Black, int _generation)
   {
-    _partition = _p;
-    _isBlack = _Black;
-    _gen = _generation;
-    if (_isBlack)
-      _queens = _partition.getBlackQueens();
-    else
-      _queens = _partition.getWhiteQueens();
+//    _partition = _p;
+//    _isBlack = _Black;
+//    _gen = _generation;
+//    if (_isBlack)
+//      _queens = _partition.getBlackQueens();
+//    else
+//      _queens = _partition.getWhiteQueens();
 
   }
 
@@ -57,7 +57,7 @@ public class EndPartition {
       while(_shotItr.hasNext())
         {
           _tempShot = _shotItr.next();
-          if (_tempShot /*is not articulating*/)
+          if (_tempShot != null /*is not articulating*/)
             return (new Move(_from, _tempMove.getIndex(), _tempShot.getIndex(), 0));
         }
     }
