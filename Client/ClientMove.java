@@ -1,5 +1,7 @@
 package CSE4705_final.Client;
 
+import CSE4705_final.State.*;
+
 /***
  * <p>Represents an anonymous Amazons move.  This class represents a simple move,
  * consisting of a starting location "from", a new location "to", and a shooting
@@ -19,16 +21,13 @@ package CSE4705_final.Client;
  */
 public class ClientMove {
     // The old location of the queen we wish to move.
-    private int _fromRow;
-    private int _fromCol;
+    private int _fromIndex;
 
     // The new location of the queen we wish to move.
-    private int _toRow;
-    private int _toCol;
+    private int _toIndex;
 
     // The location we wish to shoot an arrow.
-    private int _shootRow;
-    private int _shootCol;
+    private int _shootIndex;
 
     /***
      * Directly creates a new move.  Keep in mind that this object is immutable.
@@ -42,12 +41,15 @@ public class ClientMove {
     public ClientMove(int fromRow, int fromCol, int toRow, int toCol,
             int shootRow, int shootCol)
     {
-        _fromRow = fromRow;
-        _fromCol = fromCol;
-        _toRow = toRow;
-        _toCol = toCol;
-        _shootRow = shootRow;
-        _shootCol = shootCol;
+        _fromIndex = Node.getIndex(fromRow, fromCol);
+        _toIndex = Node.getIndex(toRow, toCol);
+        _shootIndex = Node.getIndex(shootRow, shootCol);
+    }
+    
+    public ClientMove(int fromIndex, int toIndex, int shootIndex) {
+        _fromIndex = fromIndex;
+        _toIndex = toIndex;
+        _shootIndex = shootIndex;
     }
 
     /***
@@ -62,12 +64,12 @@ public class ClientMove {
         // Example:
         // Move:White:(6:0):(1:5):(5:9)
         // 1234567890123456789012345678
-        _fromRow = Integer.parseInt(echo.substring(12,13));
-        _fromCol = Integer.parseInt(echo.substring(14,15));
-        _toRow = Integer.parseInt(echo.substring(18,19));
-        _toCol = Integer.parseInt(echo.substring(20,21));
-        _shootRow = Integer.parseInt(echo.substring(24,25));
-        _shootCol = Integer.parseInt(echo.substring(26,27));
+        this(Integer.parseInt(echo.substring(12,13)),
+             Integer.parseInt(echo.substring(14,15)),
+             Integer.parseInt(echo.substring(18,19)),
+             Integer.parseInt(echo.substring(20,21)),
+             Integer.parseInt(echo.substring(24,25)),
+             Integer.parseInt(echo.substring(26,27)));
     }
 
     /***
@@ -80,14 +82,17 @@ public class ClientMove {
      */
     public String getSendingPrintout() {
         return String.format("(%1:%2):(%3:%4):(%5:%6)",
-                _fromRow, _fromCol, _toRow, _toCol, _shootRow, _shootCol);
+                getFromRow(), getFromCol(), getToRow(), getToCol(), getShootRow(), getShootCol());
     }
 
     // These are basic accessors for the fields in the ClientMove object.
-    public int getFromRow() { return _fromRow; }
-    public int getFromCol() { return _fromCol; }
-    public int getToRow() { return _toRow; }
-    public int getToCol() { return _toCol; }
-    public int getShootRow() { return _shootRow; }
-    public int getShootCol() { return _shootCol; }
+    public int getFromIndex() { return _fromIndex; }
+    public int getFromRow() { return _fromIndex / 10; }
+    public int getFromCol() { return _fromIndex % 10; }
+    public int getToIndex() { return _toIndex; }
+    public int getToRow() { return _toIndex / 10; }
+    public int getToCol() { return _toIndex % 10; }
+    public int getShootIndex() { return _shootIndex; }
+    public int getShootRow() { return _shootIndex / 10; }
+    public int getShootCol() { return _shootIndex % 10; }
 }
