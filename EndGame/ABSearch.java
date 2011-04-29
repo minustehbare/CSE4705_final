@@ -1,35 +1,49 @@
 package CSE4705_final.EndGame;
 
-import CSE4705_final.Client.ClientMove;
 import CSE4705_final.State.*;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 public class ABSearch{
   
   //entry function.  Start an ABSearch here
-  public Move ABStart(Partition _state, boolean _isBlack){
+  public Move ABStart(Partition _state, int gen, boolean _isBlack){
     //is there a java thing for infinity?
     if(_isBlack)
-      return (MaxValue(_state, new Move(0,0,0,0), new Move(0,0,0,0)));
-    return   (MinValue(_state, new Move(0,0,0,0), new Move(0,0,0,0)));
+      return (MaxValue(_state, gen, null, null));
+    return   (MinValue(_state, gen, null, null));
   }
   
-  private Move MaxValue(Partition _state, Move a, Move b){
+  private Move MaxValue(Partition _state, int gen, Move a, Move b){
+    //Get the index of the white queen
+    Set<Integer> _whiteQueens = _state.getWhiteQueens();
+    Iterator<Integer> WQItr = _whiteQueens.iterator();
+    Integer WQindex = WQItr.next();
+
+    //if the white queen can't move
+    if(_state.getReachableNodes(WQindex).isEmpty())
+      return null; //TODO: This will be the best move for black to take with a value that is the number of spaces blackQ can get to.
+
     //Get the index of the black queen
-    List<Integer> _blackQueens = _state.getBlackQueens();
-    Integer BQindex = null;
-    for(Integer B : _blackQueens){
-      BQindex = B;
-      System.out.println("Queen is on space "+B);
-    }
+    Set<Integer> _blackQueens = _state.getWhiteQueens();
+    Iterator<Integer> BQItr = _whiteQueens.iterator();
+    Integer BQindex = BQItr.next();
 
     //List of black's possible moves.
+<<<<<<< HEAD
     List<Integer> _moves = _state.getReachableIndicies(BQindex);
+=======
+    List<Node> _moves = _state.getReachableNodes(BQindex);
+
+>>>>>>> 1e57b68bd874236e2b58098eed5bca01d0e46bdd
     //We can't move!
     if (_moves.isEmpty())
       return null;
 
+<<<<<<< HEAD
     List<Integer> _shots;    //Store a list of shots from a given move
 
     Partition _pw=null;
@@ -98,12 +112,35 @@ public class ABSearch{
             return (new Move(BQindex.intValue(),_move,_shot,99));
           return (new Move(BQindex.intValue(),_move,_shot,_pb.enclosedCount()-_pw.enclosedCount()));
         }
+=======
+    Iterator<Node> _itrM = _moves.iterator();
+    Iterator<Node> _itrS; //Use this to scroll through shots for each move
+    List<Node> _shots;    //Store a list of shots from a given move
+    Move _move;
+    Node _tempVertex;     //Hold the current move in question
+
+    //This is where the magic happens
+    while(_itrM.hasNext()){
+      //Get an iterator of shots you can make from the first possible move
+      _tempVertex = _itrM.next();
+      _shots = _state.getReachableNodes(_tempVertex.getIndex());
+      _itrS = _shots.listIterator();
+
+      //Run through the shots, build new states, and run them recursively
+      while(_itrS.hasNext()){
+        //TODO: build a new state, pump it through MinValue, and grab the max of the returned move
+        Move _newMove = MinValue(_state, gen, a, b);
+        if(_newMove.getValue() > a.getValue())
+          a = _newMove;
+        if (b.getValue() <= a.getValue()) return a;
+>>>>>>> 1e57b68bd874236e2b58098eed5bca01d0e46bdd
       }
     }
     return a;
   }
 
   //TODO: when MaxValue works, paste it here and fix it up real nice for MinValue
+<<<<<<< HEAD
   private Move MinValue(Partition _state, Move a, Move b){
     //Get the index of the black queen
     List<Integer> _whiteQueens = _state.getWhiteQueens();
@@ -181,13 +218,20 @@ public class ABSearch{
       }
     }
     return b;
+=======
+  private Move MinValue(Partition _state, int gen, Move a, Move b){
+    return null;
+>>>>>>> 1e57b68bd874236e2b58098eed5bca01d0e46bdd
   }
 
   public static void main(String[] args){
     //create a partition
     NodeSet _refSet = new NodeSet();
-    Partition _p = _refSet.getRootPartition();
+    SortedSet<Integer> _enclosedNodes = new TreeSet<Integer>();
+    int gen = 0;
+    Partition _partition;
 
+<<<<<<< HEAD
     List<Partition> _lp1 = _p.forkNode(11, NodeState.BLOCKED);
     Partition _p1 = _lp1.get(0);
     List<Partition> _lp2 = _p1.forkNode(21, NodeState.BLOCKED);
@@ -208,6 +252,10 @@ public class ABSearch{
     //for(Integer B : _blackQueens){
     //  System.out.println("Queen is on space "+B);
     //}
+=======
+
+    _partition = new Partition(_refSet, _enclosedNodes, gen);
+>>>>>>> 1e57b68bd874236e2b58098eed5bca01d0e46bdd
 
   }
 }

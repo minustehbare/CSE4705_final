@@ -220,9 +220,9 @@ public class Partition {
         // for a split partition.
         } else if (newState != NodeState.BLOCKED) {
             int nextGen = _refSet.forkNode(index, _gen, newState);
-            SortedSet<Integer> newEnclosedSet = new TreeSet<Integer>(_enclosedSet);
-            newEnclosedSet.remove(index);
-            Partition retPart = new Partition(_refSet, newEnclosedSet, nextGen);
+//            SortedSet<Integer> newEnclosedSet = new TreeSet<Integer>(_enclosedSet);
+//            newEnclosedSet.remove(index);
+            Partition retPart = new Partition(_refSet, _enclosedSet, nextGen);
             List<Partition> retList = new LinkedList<Partition>();
             retList.add(retPart);
             return retList;
