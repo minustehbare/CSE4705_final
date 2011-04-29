@@ -26,35 +26,47 @@ public class ABSearch{
 
     //List of black's possible moves.
     List<Integer> _moves = _state.getReachableIndicies(BQindex);
-//System.out.println("_move1 is "+_moves.get(1));
     //We can't move!
     if (_moves.isEmpty())
       return null;
 
     List<Integer> _shots;    //Store a list of shots from a given move
-    Partition _p1,_p2;    //Some temporary partitions to play with
+
     Partition _pw=null;
     Partition _pb=null;
+    Partition _temP1=null;
+    Partition _temP2=null;
 
     //This is where the magic happens
     for (Integer _move : _moves){
       if (_move==BQindex)
         continue;
-      System.out.println("_moves is "+_move);
+      List<Partition> _TP1 = _state.forkNode(BQindex, NodeState.EMPTY);
+      _temP1 = _TP1.get(0);
+      List<Partition> _TP2 = _temP1.forkNode(_move, NodeState.WHITE);
+      _temP2 = _TP2.get(0);
       //Get shots you can make from the first possible move
-      _shots = _state.getReachableIndicies(_move);
+      _shots = _temP2.getReachableIndicies(_move);
 
       //Run through the shots, build new states, and run them recursively
       for (Integer _shot : _shots){
+        System.out.println(""+_move+_shots);
+        if (_shot == _move)
+          continue;
+
+        System.out.println("Running max, _moves: "+_moves+" _shots: "+_shots);
         //build a new state, pump it through MinValue, and grab the max of the returned move
-        List<Partition> _lp3 = _state.forkMove(new ClientMove(BQindex/10,BQindex%10,_move/10,_move%10,_shot/10,_shot%10),true);
+        List<Partition> _lp3 = _temP2.forkNode(_shot, NodeState.BLOCKED);
         //nasty bit of logic to check where the black and white queens ended up
         for (Partition _p3 : _lp3){
-        System.out.println(""+_move);
-          if (!_p3.getWhiteQueens().isEmpty())
+          if (!_p3.getWhiteQueens().isEmpty()){
             _pw=_p3;
-          if (!_p3.getBlackQueens().isEmpty())
+            System.out.println("trueW");
+          }
+          if (!_p3.getBlackQueens().isEmpty()){
             _pb=_p3;
+            System.out.println("trueB");
+          }
         }
         if(_pb==null||_pw==null)
           System.out.println("WWWTTTTFFFFFFFFFFFF");
@@ -75,16 +87,17 @@ public class ABSearch{
             a = _newMove;
           if (b.getValue() <= a.getValue()) return a;
         }
+        else{
+          //Get the index of the white queen
+          List<Integer> _whiteQueens = _pw.getWhiteQueens();
+          Iterator<Integer> WQItr = _whiteQueens.iterator();
+          Integer WQindex = WQItr.next();
 
-        //Get the index of the white queen
-        List<Integer> _whiteQueens = _pw.getWhiteQueens();
-        Iterator<Integer> WQItr = _whiteQueens.iterator();
-        Integer WQindex = WQItr.next();
-
-        //if the white queen can't move
-        if(_pw.getReachableIndicies(WQindex).isEmpty())
-          return (new Move(BQindex.intValue(),_move,_shot,99));
-        return (new Move(BQindex.intValue(),_move,_shot,_pb.enclosedCount()-_pw.enclosedCount()));
+          //if the white queen can't move
+          if(_pw.getReachableIndicies(WQindex).isEmpty())
+            return (new Move(BQindex.intValue(),_move,_shot,99));
+          return (new Move(BQindex.intValue(),_move,_shot,_pb.enclosedCount()-_pw.enclosedCount()));
+        }
       }
     }
     return a;
@@ -105,19 +118,29 @@ public class ABSearch{
       return null;
 
     List<Integer> _shots;    //Store a list of shots from a given move
-    Partition _p1,_p2;    //Some temporary partitions to play with
     Partition _pw=null;
     Partition _pb=null;
+    Partition _temP1=null;
+    Partition _temP2=null;
 
     //This is where the magic happens
     for (Integer _move : _moves){
+      if (_move == WQindex)
+        continue;
+      List<Partition> _TP1 = _state.forkNode(WQindex, NodeState.EMPTY);
+      _temP1 = _TP1.get(0);
+      List<Partition> _TP2 = _temP1.forkNode(_move, NodeState.WHITE);
+      _temP2 = _TP2.get(0);
       //Get shots you can make from the first possible move
-      _shots = _state.getReachableIndicies(_move);
+      _shots = _temP2.getReachableIndicies(_move);
 
       //Run through the shots, build new states, and run them recursively
       for (Integer _shot : _shots){
+        if (_shot == _move)
+          continue;
+        System.out.println("Running min, _moves: "+_moves+" _shots: "+_shots);
         //build a new state, pump it through MaxValue, and grab the max of the returned move
-        List<Partition> _lp3 = _state.forkMove(new ClientMove(WQindex/10,WQindex%10,_move/10,_move%10,_shot/10,_shot%10),false);
+        List<Partition> _lp3 = _temP2.forkNode(_shot, NodeState.BLOCKED);
 
         //nasty bit of logic to check where the black and white queens ended up
         for (Partition _p3 : _lp3){
@@ -135,25 +158,26 @@ public class ABSearch{
           List<Integer> _blackQueens = _pb.getBlackQueens();
           Integer BQindex = _blackQueens.remove(0);
 
-          //if the white queen can't move
+          //if the Black queen can't move
           if(_pw.getReachableIndicies(BQindex).isEmpty())
-            return (new Move(WQindex.intValue(),_move,_shot,99));
+            return (new Move(WQindex.intValue(),_move,_shot,-99));
 
           Move _newMove = MaxValue(_pw, a, b);
           if(_newMove.getValue() > a.getValue())
             b = _newMove;
           if (b.getValue() <= a.getValue()) return b;
         }
+        else{
+          //Get the index of the black queen
+          List<Integer> _blackQueens = _pw.getWhiteQueens();
+          Iterator<Integer> BQItr = _blackQueens.iterator();
+          Integer BQindex = BQItr.next();
 
-        //Get the index of the black queen
-        List<Integer> _blackQueens = _pw.getWhiteQueens();
-        Iterator<Integer> BQItr = _blackQueens.iterator();
-        Integer BQindex = BQItr.next();
-
-        //if the black queen can't move
-        if(_pw.getReachableNodes(BQindex).isEmpty())
-          return (new Move(WQindex.intValue(),_move,_shot,99));
-        return (new Move(WQindex.intValue(),_move,_shot,_pb.enclosedCount()-_pw.enclosedCount()));
+          //if the black queen can't move
+          if(_pw.getReachableNodes(BQindex).isEmpty())
+            return (new Move(WQindex.intValue(),_move,_shot,-99));
+          return (new Move(WQindex.intValue(),_move,_shot,_pw.enclosedCount()-_pb.enclosedCount()));
+        }
       }
     }
     return b;
@@ -170,7 +194,7 @@ public class ABSearch{
     Partition _p2 = _lp2.get(0);
     List<Partition> _lp3 = _p2.forkNode(41, NodeState.BLOCKED);
     Partition _p3 = _lp3.get(0);
-    List<Partition> _lp4 = _p3.forkMove(new ClientMove(3,0,0,0,0,1),true);
+    List<Partition> _lp4 = _p3.forkMove(new ClientMove(3,0,1,0,0,1),true);
     Partition _p4 = _lp4.get(0);
     List<Partition> _lp5 = _p4.forkMove(new ClientMove(6,0,3,0,3,1),false);
     Partition _p5 = _lp5.get(0);
@@ -179,7 +203,7 @@ public class ABSearch{
 
     ABSearch _a = new ABSearch();
     Move _move = _a.ABStart(_p6,true);
-    System.out.println(""+_move._from+_move._to+_move._shot);
+    System.out.println(""+_move._from+"|"+_move._to+"|"+_move._shot);
     //Set<Integer> _blackQueens = _p6.getWhiteQueens();
     //for(Integer B : _blackQueens){
     //  System.out.println("Queen is on space "+B);
