@@ -7,17 +7,81 @@ package CSE4705_final.AI;
 
 import CSE4705_final.State.Partition;
 import CSE4705_final.Client.ClientMove;
+import CSE4705_final.State.PartitionSet;
+import CSE4705_final.AI.Eval.Evaluator;
+import CSE4705_final.State.NodeState;
 import java.util.List;
 /**
  *
  * @author tom
  */
-public class Hueristic {
-  public int _queenMoveCoeff = 1, _kingMoveCoeff = 1;
+public class Hueristic implements Evaluator {
+  public final int _friendlyQueenMoveCoeff, _friendlyKingMoveCoeff, _enemyQueenMoveCoeff, _enemyKingMoveCoeff;
 
-  public Hueristic(int queenMoveCoeff, int kingMoveCoeff) {
-    _queenMoveCoeff = queenMoveCoeff;
-    _kingMoveCoeff = kingMoveCoeff;
+  public Hueristic(int friendlyQueenMoveCoeff, int friendlyKingMoveCoeff, int enemyQueenMoveCoeff, int enemyKingMoveCoeff) {
+    _friendlyQueenMoveCoeff = friendlyQueenMoveCoeff;
+    _friendlyKingMoveCoeff = friendlyKingMoveCoeff;
+    _enemyQueenMoveCoeff = enemyQueenMoveCoeff;
+    _enemyKingMoveCoeff = enemyKingMoveCoeff;
+  }
+  public Hueristic() {
+    _friendlyQueenMoveCoeff = 1;
+    _friendlyKingMoveCoeff = 1;
+    _enemyQueenMoveCoeff = 1;
+    _enemyKingMoveCoeff = 1;
+  }
+
+
+  public int score(PartitionSet ps) {
+    int whiteOwnedPartitionsScore = rateAllOwnedPartitions(ps.getWhiteOwnedParts());
+    int blackOwnedPartitionsScore = rateAllOwnedPartitions(ps.getBlackOwnedParts());
+    int contestedPartitionsScore = rateAllContestedPartitions(ps.getContestedParts());
+    return (whiteOwnedPartitionsScore + blackOwnedPartitionsScore + contestedPartitionsScore);
+  }
+  public int rateAllOwnedPartitions(List<Partition> pl) {
+    int totalReachableSpaces = 0;
+    for (Partition p : pl)
+      totalReachableSpaces += rateOwnedPartition(p);
+    return totalReachableSpaces;
+  }
+  public int rateAllContestedPartitions(List<Partition> pl) {
+    int contestedPartitionScores = 0;
+    for (Partition p : pl)
+      contestedPartitionScores += rateContestedPartition(p);
+    return contestedPartitionScores;
+  }
+  public int rateOwnedPartition(Partition p) {
+    int reachableSpaces = p.enclosedCount();
+    reachableSpaces -= p.getBlackQueens().size();
+    reachableSpaces -= p.getWhiteQueens().size();
+    return reachableSpaces;
+  }
+  public int rateContestedPartition(Partition p) {
+    int enemyScore = rateQueens(p, false);
+    int friendlyScore = rateQueens(p, true);
+    return (friendlyScore - enemyScore);
+  }
+
+
+
+
+
+  public int rateQueensSet(List<Partition> pl, boolean white) {
+    int queenScore = 0;
+    for (Partition p : pl)
+      queenScore += rateQueens(p, white);
+    return queenScore;
+  }
+  public int rateQueens(Partition p, boolean white) {
+    List<Integer> queens = null;
+    if (white)
+      queens = p.getWhiteQueens();
+    else
+      queens = p.getBlackQueens();
+    int queenScore = 0;
+    for (Integer q : queens)
+      queenScore += rateNode(p, q, white);
+    return queenScore;
   }
   public int rateMove(Partition pre, ClientMove m) {
     List<Partition> postMovePartitions = pre.forkMove(m, true);
@@ -25,47 +89,40 @@ public class Hueristic {
     for (Partition p : postMovePartitions)
       if (p.containsNode(m.getToIndex()))
         post = p;
-
-    return (rateTo(post, m) - rateFrom(pre, m) + rateShot(pre, postMovePartitions, m));
+    return (rateTo(post, m.getToIndex()) - rateFrom(pre, m.getFromIndex()) + rateShot(pre, postMovePartitions));
   }
-  public int rateFrom(Partition p, ClientMove m) {
-    return rateNode(p, m.getFromIndex());
+  public int rateFrom(Partition p, int i) {
+    return rateNode(p, i, true);
   }
-  public int rateTo(Partition p, ClientMove m) {
-    return rateNode(p, m.getToIndex());
+  public int rateTo(Partition p, int i) {
+    return rateNode(p, i, true);
   }
-  public int rateShot(Partition pre, List<Partition> postPartitions, ClientMove m) {
-    int preShot = ratePreShot(pre, m);
-    int postShot = ratePostShot(postPartitions, m);
+  public int rateShot(Partition pre, List<Partition> postPartitions) {
+    int preShot = ratePreShot(pre);
+    int postShot = ratePostShot(postPartitions);
     return (preShot - postShot);
   }
-  public int ratePreShot(Partition p, ClientMove m) {
-    List<Integer> enemyQueens = p.getBlackQueens();
-    int enemyQueenValues = 0;
-    for (Integer q : enemyQueens)
-      enemyQueenValues += rateNode(p, q);
-    List<Integer> friendlyQueens = p.getWhiteQueens();
-    int friendlyQueenValues = 0;
-    for (Integer q : friendlyQueens)
-      friendlyQueenValues += rateNode(p, q);
+  public int ratePreShot(Partition p) {
+    int enemyQueenValues = rateQueens(p, false);
+    int friendlyQueenValues = rateQueens(p, true);
     return (enemyQueenValues - friendlyQueenValues);
   }
-  public int ratePostShot(List<Partition> partitions, ClientMove m) {
-    int enemyQueenValues = 0;
-    int friendlyQueenValues = 0;
-    for (Partition p : partitions) {
-      List<Integer> enemyQueens = p.getBlackQueens();
-      List<Integer> friendlyQueens = p.getWhiteQueens();
-      for (Integer q : enemyQueens)
-        enemyQueenValues += rateNode(p, q);
-      for (Integer q : friendlyQueens)
-        friendlyQueenValues += rateNode(p, q);
+  public int ratePostShot(List<Partition> partitions) {
+    int enemyQueenValues = rateQueensSet(partitions, false);
+    int friendlyQueenValues = rateQueensSet(partitions, true);
+    return (enemyQueenValues - friendlyQueenValues);
+  }
+  public int rateNode(Partition p, int i, boolean white) {
+    int kingMoves = p.getNeighboringIndicies(i).size();
+    int queenMoves = p.getReachableIndicies(i).size();
+    if (white) {
+      kingMoves *= _friendlyKingMoveCoeff;
+      queenMoves *= _friendlyQueenMoveCoeff;
     }
-    return (enemyQueenValues - friendlyQueenValues);
-  }
-  public int rateNode(Partition p, int i) {
-    int kingMoves = p.getNeighboringIndicies(i).size()*_kingMoveCoeff;
-    int queenMoves = p.getReachableIndicies(i).size()*_queenMoveCoeff;
+    else {
+      kingMoves *= _enemyKingMoveCoeff;
+      queenMoves *= _enemyQueenMoveCoeff;
+    }
     return (kingMoves + queenMoves);
   }
 }
