@@ -9,18 +9,28 @@ import CSE4705_final.State.Partition;
 import CSE4705_final.Client.ClientMove;
 import CSE4705_final.State.PartitionSet;
 import CSE4705_final.AI.Eval.Evaluator;
+import CSE4705_final.State.NodeState;
 import java.util.List;
 /**
  *
  * @author tom
  */
 public class Hueristic implements Evaluator {
-  public int _queenMoveCoeff = 1, _kingMoveCoeff = 1;
+  public final int _friendlyQueenMoveCoeff, _friendlyKingMoveCoeff, _enemyQueenMoveCoeff, _enemyKingMoveCoeff;
 
-  public Hueristic(int queenMoveCoeff, int kingMoveCoeff) {
-    _queenMoveCoeff = queenMoveCoeff;
-    _kingMoveCoeff = kingMoveCoeff;
+  public Hueristic(int friendlyQueenMoveCoeff, int friendlyKingMoveCoeff, int enemyQueenMoveCoeff, int enemyKingMoveCoeff) {
+    _friendlyQueenMoveCoeff = friendlyQueenMoveCoeff;
+    _friendlyKingMoveCoeff = friendlyKingMoveCoeff;
+    _enemyQueenMoveCoeff = enemyQueenMoveCoeff;
+    _enemyKingMoveCoeff = enemyKingMoveCoeff;
   }
+  public Hueristic() {
+    _friendlyQueenMoveCoeff = 1;
+    _friendlyKingMoveCoeff = 1;
+    _enemyQueenMoveCoeff = 1;
+    _enemyKingMoveCoeff = 1;
+  }
+
 
   public int score(PartitionSet ps) {
     int whiteOwnedPartitionsScore = rateAllOwnedPartitions(ps.getWhiteOwnedParts());
@@ -70,7 +80,7 @@ public class Hueristic implements Evaluator {
       queens = p.getBlackQueens();
     int queenScore = 0;
     for (Integer q : queens)
-      queenScore += rateNode(p, q);
+      queenScore += rateNode(p, q, white);
     return queenScore;
   }
   public int rateMove(Partition pre, ClientMove m) {
@@ -82,10 +92,10 @@ public class Hueristic implements Evaluator {
     return (rateTo(post, m.getToIndex()) - rateFrom(pre, m.getFromIndex()) + rateShot(pre, postMovePartitions));
   }
   public int rateFrom(Partition p, int i) {
-    return rateNode(p, i);
+    return rateNode(p, i, true);
   }
   public int rateTo(Partition p, int i) {
-    return rateNode(p, i);
+    return rateNode(p, i, true);
   }
   public int rateShot(Partition pre, List<Partition> postPartitions) {
     int preShot = ratePreShot(pre);
@@ -102,9 +112,17 @@ public class Hueristic implements Evaluator {
     int friendlyQueenValues = rateQueensSet(partitions, true);
     return (enemyQueenValues - friendlyQueenValues);
   }
-  public int rateNode(Partition p, int i) {
-    int kingMoves = p.getNeighboringIndicies(i).size()*_kingMoveCoeff;
-    int queenMoves = p.getReachableIndicies(i).size()*_queenMoveCoeff;
+  public int rateNode(Partition p, int i, boolean white) {
+    int kingMoves = p.getNeighboringIndicies(i).size();
+    int queenMoves = p.getReachableIndicies(i).size();
+    if (white) {
+      kingMoves *= _friendlyKingMoveCoeff;
+      queenMoves *= _friendlyQueenMoveCoeff;
+    }
+    else {
+      kingMoves *= _enemyKingMoveCoeff;
+      queenMoves *= _enemyQueenMoveCoeff;
+    }
     return (kingMoves + queenMoves);
   }
 }
