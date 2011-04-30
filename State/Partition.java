@@ -431,7 +431,7 @@ public class Partition {
         List<Node> retList = new LinkedList<Node>();
         int offset = 1;
         Node t;
-        retList.add(getNode(row, col));
+        // retList.add(getNode(row, col));
         // UP
         while (containsNode(row - offset, col) &&
                (t = getNode(row - offset, col)).getState() == NodeState.EMPTY) {
@@ -492,6 +492,22 @@ public class Partition {
 
     public List<Node> getReachableNodes(int index) {
         return getReachableNodes(index / 10, index % 1);
+    }
+    
+    public List<ClientMove> getPossibleMoves(int queenIndex) {
+        // Note:  This CANNOT split the partition!
+        Partition emptiedPart = forkNode(queenIndex, NodeState.EMPTY).get(0);
+        List<Integer> movableIndicies = getReachableIndicies(queenIndex);
+        List<ClientMove> possibleMoves = new LinkedList<ClientMove>();
+        for (int moveIndex : movableIndicies) {
+            // Get a list of indicies from this index.
+            List<Integer> shootableIndicies = getReachableIndicies(moveIndex);
+            // For each one, create a new move.
+            for (int shootIndex : shootableIndicies) {
+                possibleMoves.add(new ClientMove(queenIndex, moveIndex, shootIndex));
+            }
+        }
+        return possibleMoves;
     }
 
     public List<Integer> getNeighboringIndicies(int row, int col) {
@@ -620,13 +636,11 @@ public class Partition {
 
     public String getNamePrefix() {
         String fullName = getFullName();
-        //return fullName.substring(0,fullName.length() / (3 * SAVE_DEPTH));
         return fullName.substring(0,fullName.length() - (fullName.length() % SAVE_DEPTH));
     }
 
     public String getNameSuffix() {
         String fullName = getFullName();
-        //return fullName.substring(fullName.length() / (3 * SAVE_DEPTH));
         String suffix = fullName.substring(fullName.length() - (fullName.length() % SAVE_DEPTH));
         
         //if the suffix is empty, return a default suffix that will never normally show up.

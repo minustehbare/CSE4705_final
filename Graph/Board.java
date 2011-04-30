@@ -261,8 +261,8 @@ public class Board{
     System.out.println(_b.deltaMoves(0,0,0,2));
     _b.printBoard();
  
-    ArticPointDFS _DFS = new ArticPointDFS(100);
-    _DFS.runArticPoint(_b.getEdgeParam());
+//    ArticPointDFS _DFS = new ArticPointDFS(100);
+//    _DFS.runArticPoint(_b.getEdgeParam());
 
   }
 }

@@ -60,6 +60,10 @@ public class PartitionSet {
         return Collections.unmodifiableList(_contestedParts);
     }
     
+    public boolean areAnyContestedParts() {
+        return _contestedParts.size() > 0;
+    }
+    
     private void addArbitraryPartition(Partition part) {
         switch (part.getPartitionState()) {
             case DEAD:
