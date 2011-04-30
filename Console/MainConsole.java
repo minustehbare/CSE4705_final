@@ -1,5 +1,6 @@
 package CSE4705_final.Console;
 
+import CSE4705_final.State.NodeSet;
 import java.io.*;
 import java.util.*;
 
@@ -46,6 +47,7 @@ public class MainConsole {
     }
 
     private static void buildMenus() {
+        final Runnable emptyRunnable = new Runnable() { public void run() {} };
         // main menu
         ConsoleMenu mainMenu = new ConsoleMenu("Main Menu");
 
@@ -54,9 +56,17 @@ public class MainConsole {
                 System.out.println("CLOSURES!");
             }
         }, "main"));
-        mainMenu.addOption(new ConsoleOption("[Q]uit", "Exit AmazAI", new Runnable() {
-            public void run() {}
-        }, ""));
+        mainMenu.addOption(new ConsoleOption("Mis[c]ellaneous", "Misc. commands, including odd tests", "Contains miscellaneous commands that are not related to the normal operation of AmazAI.", emptyRunnable, "misc"));
+        mainMenu.addOption(new ConsoleOption("[Q]uit", "Exit AmazAI", emptyRunnable, ""));
+        
+        ConsoleMenu miscMenu = new ConsoleMenu("Miscellaneous Commands");
+        
+        miscMenu.addOption(new ConsoleOption("[M]ain Menu", "Return to the main menu", emptyRunnable, "main"));
+        miscMenu.addOption(new ConsoleOption("Test NodeSet printout", "Prints a test printout to the console", new Runnable() {
+            public void run() {
+                NodeSet.main(new String[0]);
+            }
+        }, "misc"));
         
         _menus.put("main", mainMenu);
     }
