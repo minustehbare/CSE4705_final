@@ -69,6 +69,7 @@ public class MainConsole {
         }, "misc"));
         
         _menus.put("main", mainMenu);
+        _menus.put("misc", miscMenu);
     }
 
 }
