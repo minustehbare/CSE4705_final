@@ -69,7 +69,7 @@ public class GenericSearchAI extends PartitionBasedAI {
     protected ClientMove getPlayerMoveCore(int timeRemaining) {
         List<Partition> contestedParts = _currentSet.getContestedParts();
         // Get a list of all our moves.
-        Map<Integer, AggregateMove> scoredMoves = new ConcurrentSkipListMap<Integer, AggregateMove>();
+        Map<AggregateMove, Integer> scoredMoves = new ConcurrentHashMap<AggregateMove, Integer>();
         // Launch a new thread for each partition/queen.
         // There is a maximum of 4 moving queens.
         List<Thread> evalThreadList = new LinkedList<Thread>();
@@ -89,7 +89,30 @@ public class GenericSearchAI extends PartitionBasedAI {
         } catch (InterruptedException e) {
             throw new RuntimeException("Thread interrupt while evaluation initial moves!");
         }
-        // We need to launch a thread for each of the 
+        // We need to launch a thread for each of the top initialSearchWidth moves.
+
+        final InitialMoveStore initialStore = new InitialMoveStore(scoredMoves);
+        List<AggregateMove> threadMoves1 = new LinkedList<AggregateMove>();
+        List<AggregateMove> threadMoves2 = new LinkedList<AggregateMove>();
+        List<AggregateMove> threadMoves3 = new LinkedList<AggregateMove>();
+        List<AggregateMove> threadMoves4 = new LinkedList<AggregateMove>();
+        {
+            int assignment = 0;
+            for (AggregateMove m : scoredMoves.keySet()) {
+                switch (assignment) {
+                    case 0:
+                        threadMoves1.add(m);
+                    case 1:
+                        threadMoves2.add(m);
+                    case 2:
+                        threadMoves3.add(m);
+                    case 3:
+                        threadMoves4.add(m);
+                }
+                assignment = (assignment + 1) % 4;
+            }
+        }
+        
         
         // TODO: Finish implementation.
         throw new RuntimeException("search is not yet implemented.");
@@ -116,11 +139,11 @@ public class GenericSearchAI extends PartitionBasedAI {
     protected class EvalQueenThread extends Thread {
         private final Partition _part;
         private final int _queenIndex;
-        private final Map<Integer, AggregateMove> _moveMap;
+        private final Map<AggregateMove, Integer> _moveMap;
         private final PartitionSet _partSet;
         private final boolean _isMovingPlayerBlack;
         public EvalQueenThread(Partition part, int queenIndex,
-                Map<Integer, AggregateMove> moveMap, PartitionSet partSet,
+                Map<AggregateMove, Integer> moveMap, PartitionSet partSet,
                 boolean isMovingPlayerBlack) {
             _part = part;
             _queenIndex = queenIndex;
@@ -133,7 +156,98 @@ public class GenericSearchAI extends PartitionBasedAI {
         public void run() {
             for (ClientMove possibleMove : _part.getPossibleMoves(_queenIndex)) {
                 PartitionSet newPartSet = _partSet.forkPartitionSet(possibleMove, _isMovingPlayerBlack);
-                _moveMap.put(_scorer.score(newPartSet), new AggregateMove(possibleMove, _part, newPartSet));
+                _moveMap.put(new AggregateMove(possibleMove, _part, newPartSet), _scorer.score(newPartSet));
+            }
+        }
+    }
+
+    private class InitialMoveStore {
+        private final Map<AggregateMove, Integer> _currentValues;
+        private final Map<AggregateMove, Integer> _newValues;
+        private int _currentDepth;
+
+        private int _totalThreads;
+        private int _finishedThreads;
+
+        private final Object _threadCountMutex = new Object();
+
+        public InitialMoveStore(Map<AggregateMove, Integer> seedMoves) {
+            _currentValues = new ConcurrentHashMap<AggregateMove, Integer>();
+            _newValues = new ConcurrentHashMap<AggregateMove, Integer>();
+            _currentDepth = 1;
+            _totalThreads = 0;
+            _finishedThreads = 0;
+            for (AggregateMove m : seedMoves.keySet()) {
+                _currentValues.put(m, seedMoves.get(m));
+            }
+        }
+
+        public void registerThread() {
+            synchronized (_threadCountMutex) {
+                _totalThreads ++;
+            }
+        }
+
+        public void unregisterThread() {
+            synchronized (_threadCountMutex) {
+                _totalThreads --;
+            }
+        }
+
+        public void finish() {
+            synchronized (_threadCountMutex) {
+                _finishedThreads ++;
+                if (_finishedThreads == _totalThreads) {
+                    _currentValues.clear();
+                    for (AggregateMove m : _newValues.keySet()) {
+                        _currentValues.put(m, _newValues.get(m));
+                    }
+                    _newValues.clear();
+                    _currentDepth ++;
+                    _threadCountMutex.notifyAll();
+                } else {
+                    try {
+                        _threadCountMutex.wait();
+                    } catch (InterruptedException e) {
+
+                    }
+                }
+            }
+        }
+
+        public AggregateMove getBestSoFar() {
+            if (_newValues.size() > 0) {
+                int completedTotal = 0;
+                AggregateMove bestMove = null;
+                int bestScore = Integer.MIN_VALUE;
+                for (AggregateMove m : _newValues.keySet()) {
+                    completedTotal += _newValues.get(m) - _currentValues.get(m);
+                }
+                int meanDelta = completedTotal / _newValues.size();
+                for (AggregateMove m : _currentValues.keySet()) {
+                    int tempScore;
+                    if (_newValues.containsKey(m)) {
+                        tempScore = _newValues.get(m);
+                    } else {
+                        tempScore = _currentValues.get(m) + meanDelta;
+                    }
+                    if (tempScore > bestScore) {
+                        bestScore = tempScore;
+                        bestMove = m;
+                    }
+                }
+                return bestMove;
+            } else {
+                AggregateMove bestMove = null;
+                int bestScore = Integer.MIN_VALUE;
+                for (AggregateMove m : _currentValues.keySet()) {
+                    int tempScore = _currentValues.get(m);
+                    if (tempScore > bestScore) {
+                        bestScore = tempScore;
+                        bestMove = m;
+                    }
+                }
+                return bestMove;
             }
         }
     }
