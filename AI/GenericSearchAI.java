@@ -18,6 +18,8 @@ public class GenericSearchAI extends PartitionBasedAI {
     protected int _searchWidth;
     
     private final Object _stateMutex = new Object();
+    private final Object _timerMutex = new Object();
+    private final Object _notifyMutex = new Object();
     
     private boolean _timeExpired;
     
@@ -61,14 +63,18 @@ public class GenericSearchAI extends PartitionBasedAI {
             final int timeGiven = timeRemaining * 1000;
             new Thread(new Runnable() {
                 public void run() {
-                    _timeExpired = false;
-                    try {
-                        wait(timeGiven);
-                    } catch (InterruptedException e) {
-                        
+                    synchronized (_timerMutex) {
+                        _timeExpired = false;
+                        try {
+                            _timerMutex.wait(timeGiven);
+                        } catch (InterruptedException e) {
+
+                        }
+                        _timeExpired = true;
+                        synchronized (_notifyMutex) {
+                            _notifyMutex.notifyAll();
+                        }
                     }
-                    _timeExpired = true;
-                    _stateMutex.notifyAll();
                 }
             }).start();
             // Start with the contested blocks.
@@ -155,9 +161,11 @@ public class GenericSearchAI extends PartitionBasedAI {
         
         // Wait for the time to run out.
         if (!_timeExpired) {
-            try {
-                _stateMutex.wait();
-            } catch (InterruptedException e) {
+            synchronized (_notifyMutex) {
+                try {
+                    _notifyMutex.wait();
+                } catch (InterruptedException e) {
+                }
             }
         }
         
@@ -273,9 +281,9 @@ public class GenericSearchAI extends PartitionBasedAI {
         
         @Override
         public void run() {
-            // test for interruption.
-            if (Thread.currentThread().isInterrupted()) {
-                // etc
+            // TODO - implement search threads.
+            // For now, here's some "filler"
+            while (Thread.currentThread().isInterrupted()) {
                 
             }
         }
