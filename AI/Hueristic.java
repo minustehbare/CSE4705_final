@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package AI;
+package CSE4705_final.AI;
 
 import CSE4705_final.State.Partition;
 import CSE4705_final.Client.ClientMove;
@@ -23,16 +23,16 @@ public class Hueristic {
     List<Partition> postMovePartitions = pre.forkMove(m, true);
     Partition post = pre;
     for (Partition p : postMovePartitions)
-      if (p.containsNode(m.getTo()))
+      if (p.containsNode(m.getToIndex()))
         post = p;
 
     return (rateTo(post, m) - rateFrom(pre, m) + rateShot(pre, postMovePartitions, m));
   }
   public int rateFrom(Partition p, ClientMove m) {
-    return rateNode(p, m.getFrom());
+    return rateNode(p, m.getFromIndex());
   }
   public int rateTo(Partition p, ClientMove m) {
-    return rateNode(p, m.getTo());
+    return rateNode(p, m.getToIndex());
   }
   public int rateShot(Partition pre, List<Partition> postPartitions, ClientMove m) {
     int preShot = ratePreShot(pre, m);
