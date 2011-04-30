@@ -133,6 +133,7 @@ public class GenericSearchAI extends PartitionBasedAI {
             int assignment = 0;
             for (int i = 1; i <= _initialSearchWidth; i++) {
                 AggregateMove placementMove = allMoves.get(allMoves.size() - i).getMove();
+                initialStore.addInitialMove(allMoves.get(allMoves.size() - i));
                 switch (assignment) {
                     case 0:
                         threadMoves1.add(placementMove);
@@ -145,6 +146,7 @@ public class GenericSearchAI extends PartitionBasedAI {
                 }
                 assignment = (assignment + 1) % 4;
             }
+            initialStore.doneInitializing();
         }
         
         // Create threads.
@@ -282,10 +284,12 @@ public class GenericSearchAI extends PartitionBasedAI {
         @Override
         public void run() {
             // TODO - implement search threads.
+            _globalStore.registerThread();
             // For now, here's some "filler"
             while (Thread.currentThread().isInterrupted()) {
                 
             }
+            _globalStore.unregisterThread();
         }
     }
 
