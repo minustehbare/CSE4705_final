@@ -587,6 +587,9 @@ public class Partition {
     public PartitionState getPartitionState() {
         if (_c_state != null) {
             return _c_state;
+        } else if (getFreeStates() == 0) {
+            _c_state = PartitionState.DEAD;
+            return _c_state;
         } else {
             boolean blackFound = false;
             boolean whiteFound = false;
