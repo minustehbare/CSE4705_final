@@ -24,7 +24,8 @@ public class GenericSearchAI extends PartitionBasedAI {
     
     private boolean _timeExpired;
     
-    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer, int searchWidth, boolean syncThreads) {
+    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer,
+            int searchWidth, boolean syncThreads) {
         super(isPlayerBlack);
         _scorer = scorer;
         _searchWidth = searchWidth;
@@ -32,7 +33,8 @@ public class GenericSearchAI extends PartitionBasedAI {
         _syncThreads = syncThreads;
     }
     
-    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer, int searchWidth, int initialSearchWidth, boolean syncThreads) {
+    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer,
+            int searchWidth, int initialSearchWidth, boolean syncThreads) {
         super(isPlayerBlack);
         _scorer = scorer;
         _searchWidth = searchWidth;
@@ -96,15 +98,16 @@ public class GenericSearchAI extends PartitionBasedAI {
     protected ClientMove getPlayerMoveCore(int timeRemaining) {
         List<Partition> contestedParts = _currentSet.getContestedParts();
         // Get a list of all our moves.
-        SortedSet<AggregateMove> scoredMoves = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>()); 
+        SortedSet<AggregateMove> scoredMoves =
+                Collections.synchronizedSortedSet(new TreeSet<AggregateMove>()); 
         // Launch a new thread for each partition/queen.
         // There is a maximum of 4 moving queens.
         List<Thread> evalThreadList = new LinkedList<Thread>();
         {
             for (Partition part : contestedParts) {
                 for (Integer queenIndex : part.getWhiteQueens()) {
-                    Thread evalThread = new EvalQueenThread(part, queenIndex, scoredMoves,
-                            _currentSet, false);
+                    Thread evalThread = new EvalQueenThread(part, queenIndex,
+                            scoredMoves, _currentSet, false);
                     evalThreadList.add(evalThread);
                     evalThread.start();
                 }
@@ -115,7 +118,8 @@ public class GenericSearchAI extends PartitionBasedAI {
                     t.join();
                 }
             } catch (InterruptedException e) {
-                throw new RuntimeException("Thread interrupt while evaluation initial moves!");
+                throw new RuntimeException(
+                        "Thread interrupt while evaluation initial moves!");
             }
         }
         
@@ -134,7 +138,7 @@ public class GenericSearchAI extends PartitionBasedAI {
             int assignment = 0;
             for (int i = 1; i <= _initialSearchWidth; i++) {
                 AggregateMove placementMove = allMoves.get(allMoves.size() - i);
-                initialStore.addInitialMove(allMoves.get(allMoves.size() - i));
+                initialStore.addMove(allMoves.get(allMoves.size() - i));
                 switch (assignment) {
                     case 0:
                         threadMoves1.add(placementMove);
@@ -147,7 +151,6 @@ public class GenericSearchAI extends PartitionBasedAI {
                 }
                 assignment = (assignment + 1) % 4;
             }
-            initialStore.doneInitializing();
         }
         
         // Create threads.
@@ -190,7 +193,9 @@ public class GenericSearchAI extends PartitionBasedAI {
         
         // Return the best move we have.
         AggregateMove bestMove = initialStore.getBestSoFar();
-        System.out.println("Winning move: " + bestMove.getMove().getSendingPrintout() + " [" + bestMove.getValue() + "]");
+        System.out.println("Winning move: " +
+                bestMove.getMove().getSendingPrintout() + " [" +
+                bestMove.getValue() + "]");
         return bestMove.getMove();
     }
     
@@ -262,8 +267,10 @@ public class GenericSearchAI extends PartitionBasedAI {
         @Override
         public void run() {
             for (ClientMove possibleMove : _part.getPossibleMoves(_queenIndex)) {
-                PartitionSet newPartSet = _partSet.forkPartitionSet(possibleMove, _isMovingPlayerBlack);
-                _moveSet.add(new AggregateMove(possibleMove, _part, newPartSet, _scorer.score(newPartSet)));
+                PartitionSet newPartSet = _partSet.forkPartitionSet(
+                        possibleMove, _isMovingPlayerBlack);
+                _moveSet.add(new AggregateMove(possibleMove, _part, newPartSet,
+                        _scorer.score(newPartSet)));
             }
         }
     }
@@ -275,7 +282,8 @@ public class GenericSearchAI extends PartitionBasedAI {
         
         int levelsTraversed = 0;
         
-        public SearchThread(List<AggregateMove> threadMoves, InitialMoveStore globalStore) {
+        public SearchThread(List<AggregateMove> threadMoves,
+                InitialMoveStore globalStore) {
             _globalStore = globalStore;
             _threadMoves = threadMoves;
             _threadStore = new LinkedList<MoveStore>();
@@ -283,8 +291,6 @@ public class GenericSearchAI extends PartitionBasedAI {
         
         @Override
         public void run() {
-            // TODO - implement search threads.
-            _globalStore.registerThread();
             boolean isBlackMoving = true;
             // For each part set, create a new move store for it.
             for (AggregateMove m : _threadMoves) {
@@ -302,7 +308,8 @@ public class GenericSearchAI extends PartitionBasedAI {
                     if (Thread.currentThread().isInterrupted()) {
                         break;
                     } else {
-                        SortedSet<AggregateMove> nextMoves = new TreeSet<AggregateMove>();
+                        SortedSet<AggregateMove> nextMoves =
+                                new TreeSet<AggregateMove>();
                         for (Partition part : currentStore.getRootMove().getPartSet().getContestedParts()) {
                             if (Thread.currentThread().isInterrupted()) {
                                 break;
@@ -316,7 +323,8 @@ public class GenericSearchAI extends PartitionBasedAI {
                                                 System.out.println("Pending moves (current level): " + nextMoves.size());
                                                 break;
                                             } else {
-                                                PartitionSet newPartSet = currentStore.getRootMove().getPartSet().forkPartitionSet(part, move, isBlackMoving);
+                                                PartitionSet newPartSet =
+                                                        currentStore.getRootMove().getPartSet().forkPartitionSet(part, move, isBlackMoving);
                                                 nextMoves.add(new AggregateMove(move, part, newPartSet, _scorer.score(newPartSet)));
                                             }
                                         }
@@ -325,65 +333,56 @@ public class GenericSearchAI extends PartitionBasedAI {
                             }
                         }
                         // only take the best _searchWidth of them.
-                        List<AggregateMove> moveList = new ArrayList<AggregateMove>(nextMoves);
+                        List<AggregateMove> moveList =
+                                new ArrayList<AggregateMove>(nextMoves);
                         if (isBlackMoving) {
                             // we're trying to minimize - take the FIRST moves.
                             for (int i = 0; (i < _searchWidth) && (i < moveList.size()); i++) {
-                                MoveStore nextStore = new MoveStore(moveList.get(i), isBlackMoving);
+                                MoveStore nextStore =
+                                        new MoveStore(moveList.get(i), isBlackMoving);
                                 nextStores.add(nextStore);
                                 currentStore.addChild(nextStore);
-                                currentStore.addInitialMove(moveList.get(i));
+                                currentStore.addMove(moveList.get(i));
                             }
                         } else {
                             // we're trying to minimize - take the LAST moves.
                             for (int i = 1; (i <= _searchWidth) && (i <= moveList.size()); i++) {
-                                MoveStore nextStore = new MoveStore(moveList.get(moveList.size() - i), isBlackMoving);
+                                MoveStore nextStore =
+                                        new MoveStore(moveList.get(moveList.size() - i), isBlackMoving);
                                 nextStores.add(nextStore);
                                 currentStore.addChild(nextStore);
-                                currentStore.addInitialMove(moveList.get(moveList.size() - i));
+                                currentStore.addMove(moveList.get(moveList.size() - i));
                             }
                         }
                     }
                 }
                 if (Thread.currentThread().isInterrupted()) {
-                    System.out.println("Confirmed moves (current level): " + nextStores.size());
+                    System.out.println("Confirmed moves (current level): "
+                            + nextStores.size());
                     break;
                 } else {
                     currentStores = nextStores;
                     nextStores = new LinkedList<MoveStore>();
                     levelsTraversed++;
                     _globalStore.waitForOtherThreads();
-                    //_globalStore.waitForOtherThreads();
                 }
             }
             System.out.println("Levels traversed: " + levelsTraversed);
-            _globalStore.unregisterThread();
         }
     }
 
     protected class InitialMoveStore {
         private SortedSet<AggregateMove> _currentValues;
-//        private SortedSet<AggregateMove> _newValues;
         private int _currentDepth;
-
-        private int _totalThreads;
-        private int _finishedThreads;
         
         private final List<MoveStore> _children;
-
-        private final Object _threadCountMutex = new Object();
         
         private final CyclicBarrier _barrier;
-        
-        private boolean _isInitialized;
 
         public InitialMoveStore() {
-            _currentValues = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
-//            _newValues = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
+            _currentValues =
+                    Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
             _currentDepth = 1;
-            _totalThreads = 0;
-            _finishedThreads = 0;
-            _isInitialized = false;
             _children = new LinkedList<MoveStore>();
             _barrier = new CyclicBarrier(4);
         }
@@ -391,51 +390,8 @@ public class GenericSearchAI extends PartitionBasedAI {
         public void addChild(MoveStore store) {
             _children.add(store);
         }
-
-        public void registerThread() {
-            synchronized (_threadCountMutex) {
-                _totalThreads ++;
-            }
-        }
-
-        public void unregisterThread() {
-            synchronized (_threadCountMutex) {
-                _totalThreads --;
-            }
-        }
-
-//        public void finish() {
-//            synchronized (_threadCountMutex) {
-//                _finishedThreads ++;
-//                if (_finishedThreads == _totalThreads) {
-//                    _currentValues = _newValues;
-//                    _newValues = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
-//                    _currentDepth ++;
-//                    _threadCountMutex.notifyAll();
-//                } else {
-//                    try {
-//                        _threadCountMutex.wait();
-//                    } catch (InterruptedException e) {
-//
-//                    }
-//                }
-//            }
-//        }
         
         public void waitForOtherThreads() {
-//            synchronized (_threadCountMutex) {
-//                _finishedThreads ++;
-//                if (_finishedThreads == _totalThreads) {
-//                    _currentDepth ++;
-//                    _threadCountMutex.notifyAll();
-//                } else {
-//                    try {
-//                        _threadCountMutex.wait();
-//                    } catch (InterruptedException e) {
-//
-//                    }
-//                }
-//            }
             try {
                 _barrier.await();
             } catch (InterruptedException e) {
@@ -446,19 +402,9 @@ public class GenericSearchAI extends PartitionBasedAI {
             }
         }
         
-        public void addInitialMove(AggregateMove move) {
-            if (!_isInitialized) {
-                _currentValues.add(move);
-            }
+        public void addMove(AggregateMove move) {
+            _currentValues.add(move);
         }
-        
-        public void doneInitializing() {
-            _isInitialized = true;
-        }
-        
-//        public void addMove(AggregateMove move) {
-//            _newValues.add(move);
-//        }
 
         public AggregateMove getBestSoFar() {
             Set<AggregateMove> newValues = new HashSet<AggregateMove>();
@@ -472,7 +418,8 @@ public class GenericSearchAI extends PartitionBasedAI {
                 int completedTotal = 0;
                 AggregateMove bestMove = null;
                 int bestScore = Integer.MIN_VALUE;
-                Map<AggregateMove, Integer> newScoreMap = new HashMap<AggregateMove, Integer>();
+                Map<AggregateMove, Integer> newScoreMap =
+                        new HashMap<AggregateMove, Integer>();
                 for (AggregateMove m : newValues) {
                     newScoreMap.put(m, m.getValue());
                 }
@@ -503,21 +450,17 @@ public class GenericSearchAI extends PartitionBasedAI {
     
     protected class MoveStore {
         private SortedSet<AggregateMove> _currentValues;
-//        private SortedSet<AggregateMove> _newValues;
         private int _currentDepth;
         
         private final List<MoveStore> _children;
         
         private final AggregateMove _rootMove;
         private final boolean _isMinimizing;
-        
-        private boolean _isInitialized;
 
         public MoveStore(AggregateMove rootMove, boolean isMinimizing) {
-            _currentValues = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
-//            _newValues = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
+            _currentValues =
+                    Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
             _currentDepth = 1;
-            _isInitialized = false;
             _children = new LinkedList<MoveStore>();
             _rootMove = rootMove;
             _isMinimizing = isMinimizing;
@@ -534,26 +477,10 @@ public class GenericSearchAI extends PartitionBasedAI {
         public List<MoveStore> getChildren() {
             return Collections.unmodifiableList(_children);
         }
-
-//        public void finish() {
-//            _currentValues = _newValues;
-//            _newValues = new TreeSet<AggregateMove>();
-//            _currentDepth ++;
-//        }
         
-        public void addInitialMove(AggregateMove move) {
-            if (!_isInitialized) {
-                _currentValues.add(move);
-            }
+        public void addMove(AggregateMove move) {
+            _currentValues.add(move);
         }
-        
-        public void doneInitializing() {
-            _isInitialized = true;
-        }
-        
-//        public void addMove(AggregateMove move) {
-//            _newValues.add(move);
-//        }
 
         public AggregateMove getBestSoFar() {
             if (_currentValues.size() == 0) {
@@ -573,7 +500,8 @@ public class GenericSearchAI extends PartitionBasedAI {
                     } else {
                         bestScore = Integer.MIN_VALUE;
                     }
-                    Map<AggregateMove, Integer> newScoreMap = new HashMap<AggregateMove, Integer>();
+                    Map<AggregateMove, Integer> newScoreMap =
+                            new HashMap<AggregateMove, Integer>();
                     for (AggregateMove m : newValues) {
                         newScoreMap.put(m, m.getValue());
                     }
@@ -590,7 +518,7 @@ public class GenericSearchAI extends PartitionBasedAI {
                         } else {
                             tempScore = m.getValue() + meanDelta;
                         }
-                        // That * is the XOR operator.
+                        // That ^ is the XOR operator.
                         // _isMinimizing    (tempScore > bestScore)     result
                         //         false                      false      false
                         //         false                       true       true
