@@ -257,7 +257,7 @@ public class NodeSet {
         // used to free memory.
         List<NodeState> nodes = new ArrayList<NodeState>();
         for (int i = 0; i <= 99; i++) {
-            nodes.add(i, getNodeState(i % 10, i / 10, generation, false));
+            nodes.add(i, getNodeState(i / 10, i % 10, generation, false));
         }
         return new NodeSet(nodes);
     }
