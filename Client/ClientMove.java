@@ -29,7 +29,7 @@ public class ClientMove {
     // The location we wish to shoot an arrow.
     private final int _shootIndex;
 
-    private final int _value;
+    private int _value;
 
     /***
      * Directly creates a new move.  Keep in mind that this object is immutable.
@@ -123,4 +123,9 @@ public class ClientMove {
     public int hashCode() {
         return _fromIndex + (100 * _toIndex) + (10000 * _shootIndex);
     }
+
+    public void setValue(int v) {
+        _value = v;
+    }
 }
+
