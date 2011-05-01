@@ -16,6 +16,7 @@ public class GenericSearchAI extends PartitionBasedAI {
     protected Evaluator _scorer;
     protected int _initialSearchWidth;
     protected int _searchWidth;
+    protected boolean _syncThreads;
     
     private final Object _stateMutex = new Object();
     private final Object _timerMutex = new Object();
@@ -23,18 +24,20 @@ public class GenericSearchAI extends PartitionBasedAI {
     
     private boolean _timeExpired;
     
-    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer, int searchWidth) {
+    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer, int searchWidth, boolean syncThreads) {
         super(isPlayerBlack);
         _scorer = scorer;
         _searchWidth = searchWidth;
         _initialSearchWidth = searchWidth;
+        _syncThreads = syncThreads;
     }
     
-    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer, int searchWidth, int initialSearchWidth) {
+    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer, int searchWidth, int initialSearchWidth, boolean syncThreads) {
         super(isPlayerBlack);
         _scorer = scorer;
         _searchWidth = searchWidth;
         _initialSearchWidth = initialSearchWidth;
+        _syncThreads = syncThreads;
     }
     
     public void switchEvaluator(Evaluator newEval) {
@@ -349,6 +352,7 @@ public class GenericSearchAI extends PartitionBasedAI {
                     currentStores = nextStores;
                     nextStores = new LinkedList<MoveStore>();
                     levelsTraversed++;
+                    _globalStore.waitForOtherThreads();
                     //_globalStore.waitForOtherThreads();
                 }
             }
@@ -369,6 +373,8 @@ public class GenericSearchAI extends PartitionBasedAI {
 
         private final Object _threadCountMutex = new Object();
         
+        private final CyclicBarrier _barrier;
+        
         private boolean _isInitialized;
 
         public InitialMoveStore() {
@@ -379,6 +385,7 @@ public class GenericSearchAI extends PartitionBasedAI {
             _finishedThreads = 0;
             _isInitialized = false;
             _children = new LinkedList<MoveStore>();
+            _barrier = new CyclicBarrier(4);
         }
         
         public void addChild(MoveStore store) {
@@ -416,18 +423,26 @@ public class GenericSearchAI extends PartitionBasedAI {
 //        }
         
         public void waitForOtherThreads() {
-            synchronized (_threadCountMutex) {
-                _finishedThreads ++;
-                if (_finishedThreads == _totalThreads) {
-                    _currentDepth ++;
-                    _threadCountMutex.notifyAll();
-                } else {
-                    try {
-                        _threadCountMutex.wait();
-                    } catch (InterruptedException e) {
-
-                    }
-                }
+//            synchronized (_threadCountMutex) {
+//                _finishedThreads ++;
+//                if (_finishedThreads == _totalThreads) {
+//                    _currentDepth ++;
+//                    _threadCountMutex.notifyAll();
+//                } else {
+//                    try {
+//                        _threadCountMutex.wait();
+//                    } catch (InterruptedException e) {
+//
+//                    }
+//                }
+//            }
+            try {
+                _barrier.await();
+            } catch (InterruptedException e) {
+                // reset the interrupted flag.
+                Thread.currentThread().interrupt();
+            } catch (BrokenBarrierException e) {
+                
             }
         }
         
