@@ -64,7 +64,7 @@ public class MainConsole {
         miscMenu.addOption(new ConsoleOption("[M]ain Menu", "Return to the main menu", emptyRunnable, "main"));
         miscMenu.addOption(new ConsoleOption("Test NodeSet printout", "Prints a test printout to the console", new Runnable() {
             public void run() {
-                NodeSet.main(new String[0]);
+              //  NodeSet.main(new String[0]);
             }
         }, "misc"));
         

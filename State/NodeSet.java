@@ -322,7 +322,7 @@ public class NodeSet {
     private static NodeSet _getBlockedNodeSet() {
         List<NodeState> init = new ArrayList<NodeState>(100);
         for (int i = 0; i <= 99; i++) {
-            init.set(i, NodeState.BLOCKED);
+            init.add(NodeState.BLOCKED);
         }
         return new NodeSet(init);
     }
@@ -437,25 +437,4 @@ public class NodeSet {
         printout.append(" └─┴─┴─┴─┴─┴─┴─┴─┴─┴─┘\n");
         return printout.toString();
     }
-  public static void main(String[] args){
-    //create a partition
-    NodeSet _refSet = new NodeSet();
-    Partition _p = _refSet.getRootPartition();
-    _p.print();
-    List<Partition> _lp1 = _p.forkNode(11, NodeState.BLOCKED);
-    Partition _p1 = _lp1.get(0);
-    List<Partition> _lp2 = _p1.forkNode(21, NodeState.BLOCKED);
-    Partition _p2 = _lp2.get(0);
-    List<Partition> _lp3 = _p2.forkNode(41, NodeState.BLOCKED);
-    Partition _p3 = _lp3.get(0);
-    List<Partition> _lp4 = _p3.forkMove(new ClientMove(3,0,1,0,0,1),true);
-    Partition _p4 = _lp4.get(0);
-    List<Partition> _lp5 = _p4.forkMove(new ClientMove(6,0,3,0,3,1),false);
-    Partition _p5 = _lp5.get(0);
-    List<Partition> _lp6 = _p5.forkNode(40, NodeState.BLOCKED);
-    Partition _p6 = _lp6.get(0);
-    _p6.print();
-    //System.out.println(""+_move._from+"|"+_move._to+"|"+_move._shot);
-
-  }
 }
