@@ -32,9 +32,7 @@ public class ABSearch{
           System.out.flush();
           continue;
         }
-        Partition _pw=null;
-        Partition _pb=null;
-
+        
         //This is where the magic happens
           for (ClientMove _move : _moves){
           //build a new state
@@ -65,6 +63,7 @@ public class ABSearch{
         }
       }
     }
+    System.out.println(a.getFromIndex()+","+a.getToIndex()+","+a.getShootIndex());
     return a;
   }
 
@@ -115,6 +114,7 @@ public class ABSearch{
         }
       }
     }
+    System.out.println(b.getFromIndex()+","+b.getToIndex()+","+b.getShootIndex());
     return b;
   }
 
