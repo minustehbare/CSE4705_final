@@ -248,6 +248,10 @@ public class Partition {
             }
             return parts;
     }
+
+    public List<Partition> forceSplitCheck() {
+        return getSplitPartitions(_gen);
+    }
     
     public boolean needsSplitCheck(int index) {
         int row = index / 10;

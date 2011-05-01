@@ -306,6 +306,28 @@ public class NodeSet {
     }
 
     /**
+     * This is intended to be used to set up small isolated game states.
+     * A common use would be:
+     *
+     * NodeSet init = NodeSet.BLOCKED_NODE_SET;
+     * int ng = init.forkNode(0, 0, NodeState.EMPTY);
+     * ng = init.forkNode(1, ng, NodeState.EMPTY);
+     * ng = init.forkNode(2, ng, NodeState.WHITE);
+     * NodeSet isolated = init.isolateGen(ng);
+     * Partition rootPart = isolated.getRootPartition();
+     * PartitionSet testPartSet = new PartitionSet(rootPart.forceSplitCheck());
+     *
+     */
+    public static final NodeSet BLOCKED_NODE_SET = _getBlockedNodeSet();
+    private static NodeSet _getBlockedNodeSet() {
+        List<NodeState> init = new ArrayList<NodeState>(100);
+        for (int i = 0; i <= 99; i++) {
+            init.set(i, NodeState.BLOCKED);
+        }
+        return new NodeSet(init);
+    }
+
+    /**
      * A class to implement the generation tree.  This tree is a lightweight
      * structure that keeps track of different generations.  By moving up the
      * tree, we can see all the relevant generations to a specific query.
