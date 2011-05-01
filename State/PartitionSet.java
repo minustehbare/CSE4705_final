@@ -226,4 +226,34 @@ public class PartitionSet {
         }
         return moveList;
     }
+
+    public String getPrintout() {
+        Map<Integer, NodeState> currentStates = new HashMap<Integer, NodeState>();
+        for (Partition part : _deadParts) {
+            for (int index : part.getEnclosedSet()) {
+                currentStates.put(index, part.getNodeState(index));
+            }
+        }
+        for (Partition part : _whiteOwnedParts) {
+            for (int index : part.getEnclosedSet()) {
+                currentStates.put(index, part.getNodeState(index));
+            }
+        }
+        for (Partition part : _blackOwnedParts) {
+            for (int index : part.getEnclosedSet()) {
+                currentStates.put(index, part.getNodeState(index));
+            }
+        }
+        for (Partition part : _contestedParts) {
+            for (int index : part.getEnclosedSet()) {
+                currentStates.put(index, part.getNodeState(index));
+            }
+        }
+        NodeSet printSet = NodeSet.BLOCKED_NODE_SET;
+        int gen = 0;
+        for (int index : currentStates.keySet()) {
+            gen = printSet.forkNode(index, gen, currentStates.get(index));
+        }
+        return printSet.printGen(gen);
+    }
 }
