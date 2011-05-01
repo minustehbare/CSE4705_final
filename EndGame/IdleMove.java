@@ -32,17 +32,17 @@ public class IdleMove {
 
   //returns a move from one of the partitions with only our queens
   public ClientMove getIdleMove(){
-    EndPartition _p;
-    while(_partItr.hasNext())
-    {
-      _p=_partItr.next();
-      ClientMove _move = _p.getMove();
-      if(_move==null){
-        _partItr.remove();
-        continue;
-      }
-      return _move;
-    }
+//    EndPartition _p;
+//    while(_partItr.hasNext())
+//    {
+//      _p=_partItr.next();
+//      ClientMove _move = _p.getMove();
+//      if(_move==null){
+//        _partItr.remove();
+//        continue;
+//      }
+//      return _move;
+//    }
     return null;
   }
 }
