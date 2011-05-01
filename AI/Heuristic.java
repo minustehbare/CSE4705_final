@@ -15,16 +15,16 @@ import java.util.List;
  *
  * @author tom
  */
-public class Hueristic implements Evaluator {
+public class Heuristic implements Evaluator {
   public final int _friendlyQueenMoveCoeff, _friendlyKingMoveCoeff, _enemyQueenMoveCoeff, _enemyKingMoveCoeff;
 
-  public Hueristic(int friendlyQueenMoveCoeff, int friendlyKingMoveCoeff, int enemyQueenMoveCoeff, int enemyKingMoveCoeff) {
+  public Heuristic(int friendlyQueenMoveCoeff, int friendlyKingMoveCoeff, int enemyQueenMoveCoeff, int enemyKingMoveCoeff) {
     _friendlyQueenMoveCoeff = friendlyQueenMoveCoeff;
     _friendlyKingMoveCoeff = friendlyKingMoveCoeff;
     _enemyQueenMoveCoeff = enemyQueenMoveCoeff;
     _enemyKingMoveCoeff = enemyKingMoveCoeff;
   }
-  public Hueristic() {
+  public Heuristic() {
     _friendlyQueenMoveCoeff = 1;
     _friendlyKingMoveCoeff = 1;
     _enemyQueenMoveCoeff = 1;
