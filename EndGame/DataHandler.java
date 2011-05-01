@@ -32,8 +32,8 @@ public class DataHandler {
     System.out.println(_path + _p.getNamePrefix());
     _out1 = new FileWriter(_path + _p.getNamePrefix(),true);
     _out = new BufferedWriter(_out1);
-    System.out.println(""+ _p.getNameSuffix() + "," + _m.getFrom() + "," + _m.getTo() + "," + _m.getShot());
-    _out.write(""+ _p.getNameSuffix() + "," + _m.getFrom() + "," + _m.getTo() + "," + _m.getShot()+ "\n");
+    System.out.println(""+ _p.getNameSuffix() + "," + _m.getFromIndex() + "," + _m.getToIndex() + "," + _m.getShootIndex());
+    _out.write(""+ _p.getNameSuffix() + "," + _m.getFromIndex() + "," + _m.getToIndex() + "," + _m.getShootIndex()+ "\n");
     _out.close();
   }
 
@@ -56,6 +56,6 @@ public class DataHandler {
     _file.printMove(_p,new ClientMove(3,4,5,0));
 
     ClientMove _move = _file.getMove(_p);
-    System.out.println(""+_move.getFrom()+_move.getTo()+_move.getShot());
+    System.out.println(""+_move.getFromIndex()+_move.getToIndex()+_move.getShootIndex());
   }
 }
