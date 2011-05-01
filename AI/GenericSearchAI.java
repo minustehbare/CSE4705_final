@@ -91,7 +91,7 @@ public class GenericSearchAI extends PartitionBasedAI {
     protected ClientMove getPlayerMoveCore(int timeRemaining) {
         List<Partition> contestedParts = _currentSet.getContestedParts();
         // Get a list of all our moves.
-        Map<AggregateMove, Integer> scoredMoves = new ConcurrentHashMap<AggregateMove, Integer>();
+        SortedSet<AggregateMove> scoredMoves = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>()); 
         // Launch a new thread for each partition/queen.
         // There is a maximum of 4 moving queens.
         List<Thread> evalThreadList = new LinkedList<Thread>();
@@ -118,11 +118,7 @@ public class GenericSearchAI extends PartitionBasedAI {
         // Create the global store.
         final InitialMoveStore initialStore = new InitialMoveStore();
         // Create a sorted list of all moves.
-        List<AggregateMoveValue> allMoves = new ArrayList<AggregateMoveValue>(scoredMoves.size());
-        for (AggregateMove m : scoredMoves.keySet()) {
-            allMoves.add(new AggregateMoveValue(m, scoredMoves.get(m)));
-        }
-        Collections.sort(allMoves);
+        List<AggregateMove> allMoves = new ArrayList<AggregateMove>(scoredMoves);
         
         // Sort the moves into 4 lists.
         List<AggregateMove> threadMoves1 = new LinkedList<AggregateMove>();
@@ -132,7 +128,7 @@ public class GenericSearchAI extends PartitionBasedAI {
         {
             int assignment = 0;
             for (int i = 1; i <= _initialSearchWidth; i++) {
-                AggregateMove placementMove = allMoves.get(allMoves.size() - i).getMove();
+                AggregateMove placementMove = allMoves.get(allMoves.size() - i);
                 initialStore.addInitialMove(allMoves.get(allMoves.size() - i));
                 switch (assignment) {
                     case 0:
@@ -195,49 +191,41 @@ public class GenericSearchAI extends PartitionBasedAI {
         throw new RuntimeException("Filling is not yet implemented.");
     }
     
-    protected class AggregateMove {
+    protected class AggregateMove implements Comparable<AggregateMove> {
         private final ClientMove _move;
         private final Partition _part;
         private final PartitionSet _partSet;
-        public AggregateMove(ClientMove move, Partition part, PartitionSet partSet) {
+        private final int _value;
+        public AggregateMove(ClientMove move, Partition part,
+                PartitionSet partSet, int value) {
             _move = move;
             _part = part;
             _partSet = partSet;
+            _value = value;
         }
         public ClientMove getMove() { return _move; }
         public Partition getPart() { return _part; }
         public PartitionSet getPartSet() { return _partSet; }
-    }
-    
-    protected class AggregateMoveValue implements Comparable<AggregateMoveValue> {
-        private final AggregateMove _move;
-        private final int _value;
-        public AggregateMoveValue(AggregateMove move, int value) {
-            _move = move;
-            _value = value;
-        }
-        
-        public AggregateMove getMove() { return _move; }
         public int getValue() { return _value; }
         
-        @Override
-        public boolean equals(Object other) {
-            if (other.getClass().equals(AggregateMoveValue.class)) {
-                return _move.equals(((AggregateMoveValue) other).getMove());
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = 5;
-            hash = 47 * hash + (this._move != null ? this._move.hashCode() : 0);
-            return hash;
-        }
+//        @Override
+//        public boolean equals(Object other) {
+//            if (other.getClass().equals(AggregateMove.class)) {
+//                return _move.equals(((AggregateMove) other).getMove());
+//            } else {
+//                return false;
+//            }
+//        }
+//
+//        @Override
+//        public int hashCode() {
+//            int hash = 5;
+//            hash = 47 * hash + (this._move != null ? this._move.hashCode() : 0);
+//            return hash;
+//        }
         
         @Override
-        public int compareTo(AggregateMoveValue other) {
+        public int compareTo(AggregateMove other) {
             if (_value == other.getValue()) {
                 return 0;
             } else if (_value < other.getValue()) {
@@ -251,15 +239,15 @@ public class GenericSearchAI extends PartitionBasedAI {
     protected class EvalQueenThread extends Thread {
         private final Partition _part;
         private final int _queenIndex;
-        private final Map<AggregateMove, Integer> _moveMap;
+        private final SortedSet<AggregateMove> _moveSet;
         private final PartitionSet _partSet;
         private final boolean _isMovingPlayerBlack;
         public EvalQueenThread(Partition part, int queenIndex,
-                Map<AggregateMove, Integer> moveMap, PartitionSet partSet,
+                SortedSet<AggregateMove> moveSet, PartitionSet partSet,
                 boolean isMovingPlayerBlack) {
             _part = part;
             _queenIndex = queenIndex;
-            _moveMap = moveMap;
+            _moveSet = moveSet;
             _partSet = partSet;
             _isMovingPlayerBlack = isMovingPlayerBlack;
         }
@@ -268,7 +256,7 @@ public class GenericSearchAI extends PartitionBasedAI {
         public void run() {
             for (ClientMove possibleMove : _part.getPossibleMoves(_queenIndex)) {
                 PartitionSet newPartSet = _partSet.forkPartitionSet(possibleMove, _isMovingPlayerBlack);
-                _moveMap.put(new AggregateMove(possibleMove, _part, newPartSet), _scorer.score(newPartSet));
+                _moveSet.add(new AggregateMove(possibleMove, _part, newPartSet, _scorer.score(newPartSet)));
             }
         }
     }
@@ -276,6 +264,7 @@ public class GenericSearchAI extends PartitionBasedAI {
     protected class SearchThread extends Thread {
         private final InitialMoveStore _globalStore;
         private final List<AggregateMove> _globalMoves;
+        
         public SearchThread(List<AggregateMove> globalMoves, InitialMoveStore globalStore) {
             _globalStore = globalStore;
             _globalMoves = globalMoves;
@@ -285,6 +274,8 @@ public class GenericSearchAI extends PartitionBasedAI {
         public void run() {
             // TODO - implement search threads.
             _globalStore.registerThread();
+            // For each part set, launch a new call to evaluate it.
+            
             // For now, here's some "filler"
             while (Thread.currentThread().isInterrupted()) {
                 
@@ -294,8 +285,8 @@ public class GenericSearchAI extends PartitionBasedAI {
     }
 
     protected class InitialMoveStore {
-        private final Map<AggregateMove, Integer> _currentValues;
-        private final Map<AggregateMove, Integer> _newValues;
+        private SortedSet<AggregateMove> _currentValues;
+        private SortedSet<AggregateMove> _newValues;
         private int _currentDepth;
 
         private int _totalThreads;
@@ -306,8 +297,8 @@ public class GenericSearchAI extends PartitionBasedAI {
         private boolean _isInitialized;
 
         public InitialMoveStore() {
-            _currentValues = new ConcurrentHashMap<AggregateMove, Integer>();
-            _newValues = new ConcurrentHashMap<AggregateMove, Integer>();
+            _currentValues = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
+            _newValues = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
             _currentDepth = 1;
             _totalThreads = 0;
             _finishedThreads = 0;
@@ -330,11 +321,8 @@ public class GenericSearchAI extends PartitionBasedAI {
             synchronized (_threadCountMutex) {
                 _finishedThreads ++;
                 if (_finishedThreads == _totalThreads) {
-                    _currentValues.clear();
-                    for (AggregateMove m : _newValues.keySet()) {
-                        _currentValues.put(m, _newValues.get(m));
-                    }
-                    _newValues.clear();
+                    _currentValues = _newValues;
+                    _newValues = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
                     _currentDepth ++;
                     _threadCountMutex.notifyAll();
                 } else {
@@ -347,26 +335,18 @@ public class GenericSearchAI extends PartitionBasedAI {
             }
         }
         
-        public void addInitialMove(AggregateMove move, int value) {
+        public void addInitialMove(AggregateMove move) {
             if (!_isInitialized) {
-                _currentValues.put(move, value);
+                _currentValues.add(move);
             }
-        }
-        
-        public void addInitialMove(AggregateMoveValue moveValue) {
-            addInitialMove(moveValue.getMove(), moveValue.getValue());
         }
         
         public void doneInitializing() {
             _isInitialized = true;
         }
         
-        public void addMove(AggregateMove move, int value) {
-            _newValues.put(move, value);
-        }
-        
-        public void addMove(AggregateMoveValue moveValue) {
-            addMove(moveValue.getMove(), moveValue.getValue());
+        public void addMove(AggregateMove move) {
+            _newValues.add(move);
         }
 
         public AggregateMove getBestSoFar() {
@@ -374,16 +354,20 @@ public class GenericSearchAI extends PartitionBasedAI {
                 int completedTotal = 0;
                 AggregateMove bestMove = null;
                 int bestScore = Integer.MIN_VALUE;
-                for (AggregateMove m : _newValues.keySet()) {
-                    completedTotal += _newValues.get(m) - _currentValues.get(m);
+                Map<AggregateMove, Integer> newScoreMap = new HashMap<AggregateMove, Integer>();
+                for (AggregateMove m : _newValues) {
+                    newScoreMap.put(m, m.getValue());
+                }
+                for (AggregateMove m : _currentValues) {
+                    completedTotal += newScoreMap.get(m) - m.getValue();
                 }
                 int meanDelta = completedTotal / _newValues.size();
-                for (AggregateMove m : _currentValues.keySet()) {
+                for (AggregateMove m : _currentValues) {
                     int tempScore;
-                    if (_newValues.containsKey(m)) {
-                        tempScore = _newValues.get(m);
+                    if (newScoreMap.containsKey(m)) {
+                        tempScore = newScoreMap.get(m);
                     } else {
-                        tempScore = _currentValues.get(m) + meanDelta;
+                        tempScore = m.getValue() + meanDelta;
                     }
                     if (tempScore > bestScore) {
                         bestScore = tempScore;
@@ -392,21 +376,74 @@ public class GenericSearchAI extends PartitionBasedAI {
                 }
                 return bestMove;
             } else {
+                return _currentValues.last();
+            }
+        }
+    }
+    
+    protected class MoveStore {
+        private SortedSet<AggregateMove> _currentValues;
+        private SortedSet<AggregateMove> _newValues;
+        private int _currentDepth;
+        
+        private boolean _isInitialized;
+
+        public MoveStore() {
+            _currentValues = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
+            _newValues = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
+            _currentDepth = 1;
+            _isInitialized = false;
+        }
+
+        public void finish() {
+            _currentValues = _newValues;
+            _newValues = Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
+            _currentDepth ++;
+        }
+        
+        public void addInitialMove(AggregateMove move) {
+            if (!_isInitialized) {
+                _currentValues.add(move);
+            }
+        }
+        
+        public void doneInitializing() {
+            _isInitialized = true;
+        }
+        
+        public void addMove(AggregateMove move) {
+            _newValues.add(move);
+        }
+
+        public AggregateMove getBestSoFar() {
+            if (_newValues.size() > 0) {
+                int completedTotal = 0;
                 AggregateMove bestMove = null;
                 int bestScore = Integer.MIN_VALUE;
-                for (AggregateMove m : _currentValues.keySet()) {
-                    int tempScore = _currentValues.get(m);
+                Map<AggregateMove, Integer> newScoreMap = new HashMap<AggregateMove, Integer>();
+                for (AggregateMove m : _newValues) {
+                    newScoreMap.put(m, m.getValue());
+                }
+                for (AggregateMove m : _currentValues) {
+                    completedTotal += newScoreMap.get(m) - m.getValue();
+                }
+                int meanDelta = completedTotal / _newValues.size();
+                for (AggregateMove m : _currentValues) {
+                    int tempScore;
+                    if (newScoreMap.containsKey(m)) {
+                        tempScore = newScoreMap.get(m);
+                    } else {
+                        tempScore = m.getValue() + meanDelta;
+                    }
                     if (tempScore > bestScore) {
                         bestScore = tempScore;
                         bestMove = m;
                     }
                 }
                 return bestMove;
+            } else {
+                return _currentValues.last();
             }
         }
-    }
-    
-    protected class MoveStore {
-        
     }
 }
