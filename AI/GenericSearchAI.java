@@ -409,10 +409,11 @@ public class GenericSearchAI extends PartitionBasedAI {
         public AggregateMove getBestSoFar() {
             Set<AggregateMove> newValues = new HashSet<AggregateMove>();
             for (MoveStore store : _children) {
-                newValues.add(new AggregateMove(store.getRootMove().getMove(),
-                        store.getRootMove().getPart(),
-                        store.getRootMove().getPartSet(),
-                        store.getBestSoFar().getValue()));
+                AggregateMove childMove = store.getRootMove();
+                newValues.add(new AggregateMove(childMove.getMove(),
+                        childMove.getPart(),
+                        childMove.getPartSet(),
+                        childMove.getValue()));
             }
             if (newValues.size() > 0) {
                 int completedTotal = 0;
