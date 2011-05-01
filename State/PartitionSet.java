@@ -210,4 +210,20 @@ public class PartitionSet {
         return forkPartitionSet(getContainingPartition(Node.getIndex(move.getFromRow(),
                 move.getFromCol())), move, isMovingPlayerBlack);
     }
+    
+    public List<ClientMove> getPossibleContestedMoves(boolean isPlayerBlack) {
+        List<ClientMove> moveList = new LinkedList<ClientMove>();
+        for (Partition contestedPart : _contestedParts) {
+            if (isPlayerBlack) {
+                for (int index : contestedPart.getBlackQueens()) {
+                    moveList.addAll(contestedPart.getPossibleMoves(index));
+                }
+            } else {
+                for (int index : contestedPart.getWhiteQueens()) {
+                    moveList.addAll(contestedPart.getPossibleMoves(index));
+                }
+            }
+        }
+        return moveList;
+    }
 }

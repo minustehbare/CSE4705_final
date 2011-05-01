@@ -532,7 +532,7 @@ public class Partition {
         List<ClientMove> possibleMoves = new LinkedList<ClientMove>();
         for (int moveIndex : movableIndicies) {
             // Get a list of indicies from this index.
-            List<Integer> shootableIndicies = getReachableIndicies(moveIndex);
+            List<Integer> shootableIndicies = emptiedPart.getReachableIndicies(moveIndex);
             // For each one, create a new move.
             for (int shootIndex : shootableIndicies) {
                 possibleMoves.add(new ClientMove(queenIndex, moveIndex, shootIndex));

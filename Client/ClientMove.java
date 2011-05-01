@@ -92,7 +92,7 @@ public class ClientMove {
      * @return a printout of the move suitable to send to the server
      */
     public String getSendingPrintout() {
-        return String.format("(%1:%2):(%3:%4):(%5:%6)",
+        return String.format("(%d:%d):(%d:%d):(%d:%d)",
                 getFromRow(), getFromCol(), getToRow(), getToCol(), getShootRow(), getShootCol());
     }
 
@@ -107,4 +107,20 @@ public class ClientMove {
     public int getShootRow() { return _shootIndex / 10; }
     public int getShootCol() { return _shootIndex % 10; }
     public int getValue() { return _value; }
+    
+    @Override
+    public boolean equals(Object other) {
+        if (other.getClass().equals(ClientMove.class)) {
+            ClientMove om = (ClientMove) other;
+            return _fromIndex == om.getFromIndex() && _toIndex == om.getToIndex()
+                    && _shootIndex == om.getShootIndex();
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return _fromIndex + (100 * _toIndex) + (10000 * _shootIndex);
+    }
 }
