@@ -257,10 +257,15 @@ public class Client {
             // NOTE:  This infinite loop must terminate by returning in a winning
             // scenario.
             try {
+                int nullCount = 0;
                 while (true) {
+                    if (nullCount > 1000) {
+                        throw new ClientException("High null count.");
+                    }
                     String prompt = _readLine();
                     if (prompt == null) {
                         _logMessage("NULL response from server.");
+                        nullCount++;
                     } else if (prompt.startsWith("Result")) {
                         // Someone won!
                         _state = ClientState.Ended;
@@ -291,6 +296,8 @@ public class Client {
                     } else if (prompt.startsWith("Error")) {
                         Disconnect();
                         _state = ClientState.Error;
+                        throw new ClientException(prompt);
+                    } else {
                         throw new ClientException(prompt);
                     }
                 }

@@ -15,7 +15,7 @@ import java.util.*;
  */
 public class MainConsole {
 
-    public static final String VERSION = "v0.1";
+    public static final String VERSION = "v0.2";
     private static final String DEFAULT_HOSTNAME = "icarus.engr.uconn.edu";
     private static final int DEFAULT_PORT = 3499;
     private final static String DEFAULT_USER_ONE = "5";
@@ -152,6 +152,7 @@ public class MainConsole {
                 System.out.println("We lost :(");
             }
         } catch (ClientException e) {
+            System.out.println(c.getLog());
             System.out.println("Client exception: " + e.getMessage());
         }
     }
