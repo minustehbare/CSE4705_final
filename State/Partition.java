@@ -163,10 +163,17 @@ public class Partition {
         // Luckily, we can return any of them!
         return options.iterator().next();
     }
+    
+    private void copyParts(Map<Integer, Integer> partMap, int from, int to) {
+        for (int index : partMap.keySet()) {
+            if (partMap.get(index).equals(from)) {
+                partMap.put(index, to);
+            }
+        }
+    }
 
     private List<Partition> getSplitPartitions(int futureGen) {
-
-            Map<Integer,IntPtr> partMap = new HashMap<Integer,IntPtr>(100);
+            Map<Integer,Integer> partMap = new HashMap<Integer,Integer>(100);
             int nextPart = 0;
             for (int i : _enclosedSet) {
                 // note:  this should be in order.
@@ -180,17 +187,17 @@ public class Partition {
                         // check northwest node.
                         if ((i % 10) > 0 && partMap.containsKey(i-11)) {
                             // Set it to point to this partition.
-                            partMap.get(i-11).set(partMap.get(i-10).get());
+                            copyParts(partMap, partMap.get(i-11), partMap.get(i-10));
                         }
                         // check west node.
                         if ((i % 10) > 0 && partMap.containsKey(i-1)) {
                             // Set it to point to this partition.
-                            partMap.get(i-1).set(partMap.get(i-10).get());
+                            copyParts(partMap, partMap.get(i-1), partMap.get(i-10));
                         }
                         // check northeast node.
                         if ((i % 10) < 9 && partMap.containsKey(i-9)) {
                             // Set it to point to this partition.
-                            partMap.get(i-9).set(partMap.get(i-10).get());
+                            copyParts(partMap, partMap.get(i-9), partMap.get(i-10));
                         }
                     // check northwest node
                     } else if ((i % 10) > 0 && partMap.containsKey(i-11)) {
@@ -199,12 +206,12 @@ public class Partition {
                         // check west node.
                         if ((i % 10) > 0 && partMap.containsKey(i-1)) {
                             // Set it to point to this partition.
-                            partMap.get(i-1).set(partMap.get(i-11).get());
+                            copyParts(partMap, partMap.get(i-1), partMap.get(i-11));
                         }
                         // check northeast node.
                         if ((i % 10) < 9 && partMap.containsKey(i-9)) {
                             // set it to point to this
-                            partMap.get(i-9).set(partMap.get(i-11).get());
+                            copyParts(partMap, partMap.get(i-9), partMap.get(i-11));
                         }
                     // check northeast node
                     } else if ((i % 10) < 9 && partMap.containsKey(i-9)) {
@@ -212,14 +219,14 @@ public class Partition {
                         partMap.put(i, partMap.get(i-9));
                         // check west node.
                         if ((i % 10) > 0 && partMap.containsKey(i-1)) {
-                            partMap.get(i-1).set(partMap.get(i-9).get());
+                            copyParts(partMap, partMap.get(i-1), partMap.get(i-9));
                         }
                     // check west node
                     } else if ((i % 10) > 0 && partMap.containsKey(i-1)) {
                         partMap.put(i, partMap.get(i-1));
                     } else {
                         // make a new one.
-                        partMap.put(i, new IntPtr(nextPart));
+                        partMap.put(i, nextPart);
                         nextPart++;
                     }
                 }
@@ -227,7 +234,7 @@ public class Partition {
             // collect partition sets.
             Map<Integer,SortedSet<Integer>> setMap = new HashMap<Integer, SortedSet<Integer>>();
             for (int i : partMap.keySet()) {
-                int p = partMap.get(i).get();
+                int p = partMap.get(i);
                 if (!setMap.containsKey(p)) {
                     setMap.put(p, new TreeSet<Integer>());
                 }
@@ -241,11 +248,37 @@ public class Partition {
             }
             return parts;
     }
+    
+    public boolean needsSplitCheck(int index) {
+        int row = index / 10;
+        int col = index % 10;
+        int blockedCount = 0;
+        if (getNodeState(row+1,col) == NodeState.BLOCKED) {
+            blockedCount++;
+        }
+        if (getNodeState(row-1,col) == NodeState.BLOCKED) {
+            blockedCount++;
+        }
+        if (getNodeState(row,col+1) == NodeState.BLOCKED) {
+            blockedCount++;
+        }
+        if (getNodeState(row,col-1) == NodeState.BLOCKED) {
+            blockedCount++;
+        }
+        return blockedCount >= 2;
+    }
 
     public List<Partition> forkMove(ClientMove move, boolean isMovingPlayerBlack) {
         // This always blocks a state.
         int nextGen = _refSet.forkMove(move, isMovingPlayerBlack, _gen);
-        return getSplitPartitions(nextGen);
+        if (needsSplitCheck(move.getShootIndex())) {
+            return getSplitPartitions(nextGen);
+        } else {
+            List<Partition> retList = new LinkedList<Partition>();
+            Partition retPart = new Partition(_refSet, _enclosedSet, nextGen);
+            retList.add(retPart);
+            return retList;
+        }
     }
 
     public List<Partition> forkNode(int index, NodeState newState) {
@@ -255,10 +288,8 @@ public class Partition {
 
         // If the change is NOT to block something, then we don't need to search
         // for a split partition.
-        } else if (newState != NodeState.BLOCKED) {
+        } else if (newState != NodeState.BLOCKED || !needsSplitCheck(index)) {
             int nextGen = _refSet.forkNode(index, _gen, newState);
-//            SortedSet<Integer> newEnclosedSet = new TreeSet<Integer>(_enclosedSet);
-//            newEnclosedSet.remove(index);
             Partition retPart = new Partition(_refSet, _enclosedSet, nextGen);
             List<Partition> retList = new LinkedList<Partition>();
             retList.add(retPart);
