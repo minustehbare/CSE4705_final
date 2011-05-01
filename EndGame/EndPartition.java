@@ -6,12 +6,10 @@
 
 package CSE4705_final.EndGame;
 
-import CSE4705_final.State.Node;
+import CSE4705_final.Client.ClientMove;
 import CSE4705_final.State.Partition;
-import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
 
 /**
  *
@@ -20,48 +18,74 @@ import java.util.Set;
 public class EndPartition {
   Partition _partition;
   boolean _isBlack;
-  int _gen;
-  Set<Integer> _queens;
+  int _final;
+  List<Integer> _queens;
+  List _returnList;
+
 
   //Constructor
-  public EndPartition(Partition _p, boolean _Black, int _generation)
+  public EndPartition(Partition _p, boolean _Black)
   {
-//    _partition = _p;
-//    _isBlack = _Black;
-//    _gen = _generation;
-//    if (_isBlack)
-//      _queens = _partition.getBlackQueens();
-//    else
-//      _queens = _partition.getWhiteQueens();
-
+    _partition = _p;
+    _isBlack = _Black;
+    _final = _p.enclosedCount() - _p.getBlackQueens().size() - _p.getWhiteQueens().size();
   }
 
-  //grab the next move
-  //returns null if there are no more moves
-  public Move getMove(){
-    Iterator<Integer> _itr = _queens.iterator();
-    Integer _from = _itr.next();
-    List<Node> _moves = _partition.getReachableNodes(_from);
+  public List<ClientMove> getMove(){
+    List<ClientMove> _tempList = new LinkedList<ClientMove>();
+    _returnList = new LinkedList<ClientMove>();
+    return dfs(_tempList, _partition);
+  }
 
-    //This currently checks for first possible non-articulating move+shot that can be made
-    Node _tempMove=null;
-    Node _tempShot=null;
-    ListIterator<Node> _moveItr = _moves.listIterator();
-    while(_itr.hasNext())
+  private List<ClientMove> dfs(List<ClientMove> _tempList, Partition _p){
+    if(_isBlack)
+      _queens = _p.getBlackQueens();
+    else
+      _queens = _p.getWhiteQueens();
+
+    //for each queen for each move...
+    for(Integer _from : _queens)
     {
-      _tempMove = _moveItr.next();
-      _moveItr.remove();
-      List<Node> _shots = _partition.getReachableNodes(_tempMove.getRow(),_tempMove.getCol());
+      System.out.println(_p.getPossibleMoves(_from));
+      for(ClientMove _ret : _p.getPossibleMoves(_from)){
+        _tempList.add(_ret);
 
-      ListIterator<Node> _shotItr = _shots.listIterator();
-      while(_shotItr.hasNext())
-        {
-          _tempShot = _shotItr.next();
-          if (_tempShot != null /*is not articulating*/)
-            return (new Move(_from, _tempMove.getIndex(), _tempShot.getIndex(), 0));
+        if(_tempList.size() > _returnList.size())
+          _returnList = new LinkedList(_tempList);
+        if (_tempList.size() == _final){
+          System.out.println("FINAL!"+_final);
+          _returnList = new LinkedList(_tempList);
+          return _tempList;
         }
+
+        //Make the move and get all sorts of recursive
+        List<Partition> _forkMove = _p.forkMove(_ret, _isBlack);
+        for(Partition _pr : _forkMove)
+        {
+                      System.out.println("TEST");
+          if (true){ //
+            System.out.println("TEST");
+            //if the queen is trapped and the depth deep, set the return list
+            if (_pr.enclosedCount()==1){
+              if (_tempList.size() > _returnList.size()){
+                _returnList = new LinkedList(_tempList);
+                continue;
+              }
+              continue;
+            }
+
+            //queen is free to continue
+            System.out.println("Recursion!");
+            _tempList = dfs(_tempList,_pr);
+            if(_tempList.size() > _returnList.size())
+              _returnList = new LinkedList(_tempList);
+          }
+        }
+        if(!_tempList.isEmpty())
+          ((LinkedList) _tempList).removeLast();
+      }
     }
-    //No optimal move.  Come up with a heuristic to choose a less optimal one
-    return (new Move(_from, _tempMove.getIndex(), _tempShot.getIndex(), 0));
+    _tempList = new LinkedList(_returnList);
+    return _tempList;
   }
 }

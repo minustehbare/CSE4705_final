@@ -5,6 +5,7 @@
 
 package CSE4705_final.EndGame;
 
+import CSE4705_final.Client.ClientMove;
 import CSE4705_final.State.NodeSet;
 import CSE4705_final.State.Partition;
 import java.io.BufferedReader;
@@ -27,7 +28,7 @@ public class DataHandler {
   String _path = "/home/steve/Projects/AI/CSE4705_final/EndGame/Repo/";
   FileWriter _out1;
 
-  public void printMove(Partition _p, Move _m) throws FileNotFoundException, IOException{
+  public void printMove(Partition _p, ClientMove _m) throws FileNotFoundException, IOException{
     System.out.println(_path + _p.getNamePrefix());
     _out1 = new FileWriter(_path + _p.getNamePrefix(),true);
     _out = new BufferedWriter(_out1);
@@ -36,13 +37,13 @@ public class DataHandler {
     _out.close();
   }
 
-  public Move getMove(Partition _p) throws IOException{
+  public ClientMove getMove(Partition _p) throws IOException{
     _in = new BufferedReader(new FileReader(_path + _p.getNamePrefix()));
     while((_input = _in.readLine()) != null){
       if (_input.startsWith(_p.getNameSuffix())){
         StringTokenizer _t = new StringTokenizer(_input,",");
         _t.nextToken();
-        return new Move(Integer.parseInt(_t.nextToken()),Integer.parseInt(_t.nextToken()),Integer.parseInt(_t.nextToken()),0);
+        return new ClientMove(Integer.parseInt(_t.nextToken()),Integer.parseInt(_t.nextToken()),Integer.parseInt(_t.nextToken()),0);
       }
     }
     return null;
@@ -52,9 +53,9 @@ public class DataHandler {
     NodeSet _nodeSet = new NodeSet();
     Partition _p = _nodeSet.getRootPartition();
     DataHandler _file = new DataHandler();
-    _file.printMove(_p,new Move(3,4,5,0));
+    _file.printMove(_p,new ClientMove(3,4,5,0));
 
-    Move _move = _file.getMove(_p);
+    ClientMove _move = _file.getMove(_p);
     System.out.println(""+_move.getFrom()+_move.getTo()+_move.getShot());
   }
 }
