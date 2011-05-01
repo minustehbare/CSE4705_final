@@ -561,7 +561,7 @@ public class Partition {
     }
 
     public List<Integer> getNeighboringIndicies(int index) {
-        return getNeighboringIndicies(index / 10, index % 1);
+        return getNeighboringIndicies(index / 10, index % 10);
     }
 
     public List<Node> getNeighboringNodes(int row, int col) {
@@ -581,7 +581,7 @@ public class Partition {
     }
 
     public List<Node> getNeighboringNodes(int index) {
-        return getNeighboringNodes(index / 10, index % 1);
+        return getNeighboringNodes(index / 10, index % 10);
     }
 
     public PartitionState getPartitionState() {
