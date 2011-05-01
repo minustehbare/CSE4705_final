@@ -7,7 +7,10 @@
 package CSE4705_final.EndGame;
 
 import CSE4705_final.Client.ClientMove;
+import CSE4705_final.State.NodeSet;
+import CSE4705_final.State.NodeState;
 import CSE4705_final.State.Partition;
+import CSE4705_final.State.PartitionSet;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -17,37 +20,34 @@ import java.util.List;
  */
 public class EndPartition {
   Partition _partition;
-  boolean _isBlack;
   int _final;
   List<Integer> _queens;
   List _returnList;
 
 
   //Constructor
-  public EndPartition(Partition _p, boolean _Black)
+  public EndPartition(Partition _p)
   {
     _partition = _p;
-    _isBlack = _Black;
     _final = _p.enclosedCount() - _p.getBlackQueens().size() - _p.getWhiteQueens().size();
   }
 
-  public List<ClientMove> getMove(){
+  public List<ClientMove> getMoves(){
     List<ClientMove> _tempList = new LinkedList<ClientMove>();
     _returnList = new LinkedList<ClientMove>();
     return dfs(_tempList, _partition);
   }
 
   private List<ClientMove> dfs(List<ClientMove> _tempList, Partition _p){
-    if(_isBlack)
-      _queens = _p.getBlackQueens();
-    else
-      _queens = _p.getWhiteQueens();
+    List<ClientMove> _tList = new LinkedList<ClientMove>();
+    _queens = _p.getWhiteQueens();
 
+    _tList = new LinkedList(_tempList);
     //for each queen for each move...
     for(Integer _from : _queens)
     {
-      System.out.println(_p.getPossibleMoves(_from));
       for(ClientMove _ret : _p.getPossibleMoves(_from)){
+        _tempList = new LinkedList<ClientMove>(_tList);
         _tempList.add(_ret);
 
         if(_tempList.size() > _returnList.size())
@@ -59,14 +59,17 @@ public class EndPartition {
         }
 
         //Make the move and get all sorts of recursive
-        List<Partition> _forkMove = _p.forkMove(_ret, _isBlack);
+        List<Partition> _forkMove = _p.forkMove(_ret, false);
         for(Partition _pr : _forkMove)
         {
-                      System.out.println("TEST");
-          if (true){ //
-            System.out.println("TEST");
-            //if the queen is trapped and the depth deep, set the return list
+          if (!_pr.getWhiteQueens().isEmpty()){
+            //if the queen is trapped and the depth is deep, set the return list
             if (_pr.enclosedCount()==1){
+              if (_tempList.size() == _final){
+                System.out.println("FINAL!"+_final);
+                _returnList = new LinkedList(_tempList);
+                return _tempList;
+              }
               if (_tempList.size() > _returnList.size()){
                 _returnList = new LinkedList(_tempList);
                 continue;
@@ -76,13 +79,13 @@ public class EndPartition {
 
             //queen is free to continue
             System.out.println("Recursion!");
+            _tempList = new LinkedList<ClientMove>(_tList);
+            _tempList.add(_ret);
             _tempList = dfs(_tempList,_pr);
             if(_tempList.size() > _returnList.size())
               _returnList = new LinkedList(_tempList);
           }
         }
-        if(!_tempList.isEmpty())
-          ((LinkedList) _tempList).removeLast();
       }
     }
     _tempList = new LinkedList(_returnList);

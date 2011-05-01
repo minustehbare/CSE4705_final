@@ -37,8 +37,9 @@ public class ABSearch{
           for (ClientMove _move : _moves){
           //build a new state
           PartitionSet _ps = _set.forkPartitionSet(_move, true);
+    System.out.println(_move.getFromIndex()+","+_move.getToIndex()+","+_move.getShootIndex());
 
-          //if there are no contested regions, do we have more space then them? Return the difference
+          //if there are no contested regions, do we have more space than them? Return the difference
           if (!_ps.areAnyContestedParts()){
             int v=0;
             for(Partition p : _ps.getBlackOwnedParts()){
@@ -59,7 +60,7 @@ public class ABSearch{
           ClientMove _newMove = MinValue(_ps, a, b);
           if(_newMove.getValue() > a.getValue())
             a = _newMove;
-          if (b.getValue() <= a.getValue()) return a;
+          //if (b.getValue() <= a.getValue()) return a;
         }
       }
     }
@@ -110,7 +111,7 @@ public class ABSearch{
           ClientMove _newMove = MaxValue(_ps, a, b);
           if(_newMove.getValue() < b.getValue())
             b = _newMove;
-          if (b.getValue() <= a.getValue()) return b;
+          //if (b.getValue() <= a.getValue()) return b;
         }
       }
     }
