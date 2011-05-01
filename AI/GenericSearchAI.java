@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import CSE4705_final.AI.Eval.*;
+import CSE4705_final.AI.Timers.*;
 import CSE4705_final.Client.*;
 import CSE4705_final.State.*;
 
@@ -14,6 +15,7 @@ import CSE4705_final.State.*;
 public class GenericSearchAI extends PartitionBasedAI {
     
     protected Evaluator _scorer;
+    protected AITimer _timer;
     protected int _initialSearchWidth;
     protected int _searchWidth;
     protected boolean _syncThreads;
@@ -24,22 +26,24 @@ public class GenericSearchAI extends PartitionBasedAI {
     
     private boolean _timeExpired;
     
-    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer,
+    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer, AITimer timer,
             int searchWidth, boolean syncThreads) {
         super(isPlayerBlack);
         _scorer = scorer;
         _searchWidth = searchWidth;
         _initialSearchWidth = searchWidth;
         _syncThreads = syncThreads;
+        _timer = timer;
     }
     
-    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer,
+    public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer, AITimer timer,
             int searchWidth, int initialSearchWidth, boolean syncThreads) {
         super(isPlayerBlack);
         _scorer = scorer;
         _searchWidth = searchWidth;
         _initialSearchWidth = initialSearchWidth;
         _syncThreads = syncThreads;
+        _timer = timer;
     }
     
     public void switchEvaluator(Evaluator newEval) {
@@ -65,7 +69,7 @@ public class GenericSearchAI extends PartitionBasedAI {
         synchronized (_stateMutex) {
             // TODO: Add code to prime the evaluator.
             // Set the timer.
-            final int timeGiven = timeRemaining * 1000;
+            final int timeGiven = _timer.getMillisecondsAvailable(timeRemaining, _moveCount);
             Thread timerThread = new Thread(new Runnable() {
                 public void run() {
                     synchronized (_timerMutex) {
