@@ -208,30 +208,32 @@ public class GenericSearchAI extends PartitionBasedAI {
         public PartitionSet getPartSet() { return _partSet; }
         public int getValue() { return _value; }
         
-//        @Override
-//        public boolean equals(Object other) {
-//            if (other.getClass().equals(AggregateMove.class)) {
-//                return _move.equals(((AggregateMove) other).getMove());
-//            } else {
-//                return false;
-//            }
-//        }
-//
-//        @Override
-//        public int hashCode() {
-//            int hash = 5;
-//            hash = 47 * hash + (this._move != null ? this._move.hashCode() : 0);
-//            return hash;
-//        }
+        // NOTE: I am trading some proper behavior for speed here.  This will
+        // only work if only moves at the same depth in the game tree are
+        // compared.  This should be the case.
+        @Override
+        public boolean equals(Object other) {
+            if (other.getClass().equals(AggregateMove.class)) {
+                return _move.equals(((AggregateMove) other).getMove());
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 3;
+            hash = 41 * hash + (this._move != null ? this._move.hashCode() : 0);
+            return hash;
+        }
         
         @Override
         public int compareTo(AggregateMove other) {
             if (_value == other.getValue()) {
-                return 0;
-            } else if (_value < other.getValue()) {
-                return -1;
+                // Sort based on moves, to prevent duplicate munching.
+                return hashCode() - other.hashCode();
             } else {
-                return 1;
+                return _value - other.getValue();
             }
         }
     }
