@@ -61,6 +61,7 @@ public class Client {
      */
     public Client() {
         _state = ClientState.Fresh;
+        _log = new StringBuilder();
     }
 
     /***
@@ -85,7 +86,7 @@ public class Client {
     private void _logMessage(String msg) {
         if (_enableLog) {
             synchronized(_logMutex) {
-                _log.append(_sdf.format(Calendar.getInstance()));
+                _log.append(_sdf.format(Calendar.getInstance().getTime()));
                 _log.append(msg);
                 _log.append("\n");
             }
@@ -99,7 +100,7 @@ public class Client {
     public void enableLog() {
         _enableLog = true;
         if (_sdf == null) {
-            _sdf = new SimpleDateFormat("[yyyy-MM-dd kk:mm:ss.SSS] ");
+            _sdf = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss.SSS] ");
         }
         _logMessage("Enabled log.");
     }
@@ -258,7 +259,9 @@ public class Client {
             try {
                 while (true) {
                     String prompt = _readLine();
-                    if (prompt.startsWith("Result")) {
+                    if (prompt == null) {
+                        _logMessage("NULL response from server.");
+                    } else if (prompt.startsWith("Result")) {
                         // Someone won!
                         _state = ClientState.Ended;
                         if (prompt.endsWith("Black")) {

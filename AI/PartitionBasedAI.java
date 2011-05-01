@@ -10,12 +10,10 @@ import CSE4705_final.State.*;
 public abstract class PartitionBasedAI extends BareAI {
     
     protected PartitionSet _currentSet;
-    protected NodeSet _underlyingSet;
     
     protected PartitionBasedAI(boolean isPlayerBlack) {
         // note: AI is always WHITE.
-        _underlyingSet = new NodeSet(isPlayerBlack);
-        _currentSet = new PartitionSet(_underlyingSet.getRootPartition());
+        _currentSet = new PartitionSet(new NodeSet(isPlayerBlack).getRootPartition());
     }
     
     @Override

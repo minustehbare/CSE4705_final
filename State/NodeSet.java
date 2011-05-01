@@ -79,7 +79,7 @@ public class NodeSet {
      */
     public NodeSet(boolean switchColors) {
         commonInitialization();
-        initializeBoard(true);
+        initializeBoard(switchColors);
     }
 
     /**
