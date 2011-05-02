@@ -18,8 +18,8 @@ public abstract class PartitionBasedAI extends BareAI {
     
     @Override
     protected final void registerOpponentMoveAbstract(ClientMove move) {
-        _currentSet = _currentSet.forkPartitionSet(move, true).isolate();
         notifyOpponentMove(move);
+        _currentSet = _currentSet.forkPartitionSet(move, true).isolate();
     }
     
     @Override
@@ -28,6 +28,8 @@ public abstract class PartitionBasedAI extends BareAI {
         stopIdling();
         ClientMove move = getPlayerMove(timeRemaining);
         _currentSet = _currentSet.forkPartitionSet(move, false).isolate();
+        System.out.println(_currentSet.getSummaryInfo());
+        System.out.println(_currentSet.getPrintout());
         // Start idling.
         startIdling();
         return move;

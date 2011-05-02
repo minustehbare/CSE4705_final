@@ -208,6 +208,7 @@ public class GenericSearchAI extends PartitionBasedAI {
                 }
             }
         }
+        finishGameTreeBarrier.reset();
         
         // Stop the threads.
         searchThread1.interrupt();
@@ -232,12 +233,16 @@ public class GenericSearchAI extends PartitionBasedAI {
                 bestMove.getValue() + "]");
         
         ClientMove m = bestMove.getMove();
-        _currentSet.registerNewWhiteOwnedParts(m, _fillingSet);
+        _fillingSet.registerOurMove(m, _currentSet);
         return m;
     }
     
     protected ClientMove getPlayerMoveFilling(int timeRemaining) {
         return _fillingSet.getMove();
+    }
+    
+    protected void notifyOpponentMove(ClientMove move) {
+        _fillingSet.registerOpponentMove(move, _currentSet);
     }
     
     protected class AggregateMove implements Comparable<AggregateMove> {
@@ -424,7 +429,6 @@ public class GenericSearchAI extends PartitionBasedAI {
 
     protected class InitialMoveStore {
         private SortedSet<AggregateMove> _currentValues;
-        private int _currentDepth;
         
         private final List<MoveStore> _children;
         
@@ -433,7 +437,6 @@ public class GenericSearchAI extends PartitionBasedAI {
         public InitialMoveStore() {
             _currentValues =
                     Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
-            _currentDepth = 1;
             _children = new LinkedList<MoveStore>();
             _barrier = new CyclicBarrier(4);
         }
@@ -502,7 +505,6 @@ public class GenericSearchAI extends PartitionBasedAI {
     
     protected class MoveStore {
         private SortedSet<AggregateMove> _currentValues;
-        private int _currentDepth;
         
         private final List<MoveStore> _children;
         
@@ -512,7 +514,6 @@ public class GenericSearchAI extends PartitionBasedAI {
         public MoveStore(AggregateMove rootMove, boolean isMinimizing) {
             _currentValues =
                     Collections.synchronizedSortedSet(new TreeSet<AggregateMove>());
-            _currentDepth = 1;
             _children = new LinkedList<MoveStore>();
             _rootMove = rootMove;
             _isMinimizing = isMinimizing;
@@ -605,12 +606,13 @@ public class GenericSearchAI extends PartitionBasedAI {
             _currentList = new LinkedList<ClientMove>();
         }
         
-        public void addPartition(Partition part) {
-            _stores.add(new FillingMoveStore(part));
-        }
+//        public void addPartition(Partition part) {
+//            _stores.add(new FillingMoveStore(part));
+//        }
         
         public void startCalculating() {
             synchronized (_threadControlMutex) {
+                System.out.println("Starting " + _stores.size() + " fillers.");
                 for (FillingMoveStore store : _stores) {
                     store.startCalculating();
                 }
@@ -619,6 +621,7 @@ public class GenericSearchAI extends PartitionBasedAI {
         
         public void pauseCalculating() {
             synchronized (_threadControlMutex) {
+                System.out.println("Pausing " + _stores.size() + " fillers.");
                 for (FillingMoveStore store : _stores) {
                     store.pauseCalculating();
                 }
@@ -647,6 +650,26 @@ public class GenericSearchAI extends PartitionBasedAI {
                 return nextMove;
             }
         }
+    
+        public void registerOurMove(ClientMove move, PartitionSet currentSet) {
+            Partition relevantPart = currentSet.getContainingPartition(move.getFromIndex());
+            List<Partition> newParts = relevantPart.forkMove(move, false);
+            for (Partition part : newParts) {
+                if (part.getPartitionState() == PartitionState.WHITE_OWNED) {
+                    _stores.add(new FillingMoveStore(part));
+                }
+            }
+        }
+    
+        public void registerOpponentMove(ClientMove move, PartitionSet currentSet) {
+            Partition relevantPart = currentSet.getContainingPartition(move.getFromIndex());
+            List<Partition> newParts = relevantPart.forkMove(move, true);
+            for (Partition part : newParts) {
+                if (part.getPartitionState() == PartitionState.WHITE_OWNED) {
+                    _stores.add(new FillingMoveStore(part));
+                }
+            }
+        }
     }
     
     private class FillingMoveStore {
@@ -670,13 +693,6 @@ public class GenericSearchAI extends PartitionBasedAI {
             _potentialMoves = new Stack<Stack<ClientMove>>();
             _currentStates.push(_baseSet);
             _potentialMoves.push(getAllPossibleMoves(_baseSet));
-            _fillingMoveRunner = new Thread(new Runnable() {
-                public void run() {
-                    if (!_isComplete) {
-                        calculateFillingMoves();
-                    }
-                }
-            });
         }
         
         public List<ClientMove> getBestMoves() {
@@ -693,11 +709,20 @@ public class GenericSearchAI extends PartitionBasedAI {
         }
         
         public void startCalculating() {
+            _fillingMoveRunner = new Thread(new Runnable() {
+                public void run() {
+                    if (!_isComplete) {
+                        calculateFillingMoves();
+                    }
+                }
+            });
             _fillingMoveRunner.start();
         }
         
         public void pauseCalculating() {
-            _fillingMoveRunner.interrupt();
+            if (_fillingMoveRunner != null) {
+                _fillingMoveRunner.interrupt();
+            }
         }
         
         private Stack<ClientMove> getAllPossibleMoves(PartitionSet partSet) {

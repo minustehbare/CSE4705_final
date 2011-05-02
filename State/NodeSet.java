@@ -414,7 +414,7 @@ public class NodeSet {
             nodes.add(i, getNodeState(i, generation, false));
         }
         // create a string - initialize to the top.
-        StringBuilder printout = new StringBuilder("  0 1 2 3 4 5 6 7 8 9\n ┌─┬─┬─┬─┬─┬─┬─┬─┬─┬─┐\n");
+        StringBuilder printout = new StringBuilder("  0 1 2 3 4 5 6 7 8 9\n ┌-┬-┬-┬-┬-┬-┬-┬-┬-┬-┐\n");
         // For each row form i=0 to i=9...
         for (int i = 0; i <= 9; i++) {
             // Print out the first liner.
@@ -430,11 +430,11 @@ public class NodeSet {
             printout.append('\n');
             // If this is not the last row (i=9), print out a filler row.
             if (i < 9) {
-                printout.append(" ├─┼─┼─┼─┼─┼─┼─┼─┼─┼─┤\n");
+                printout.append(" ├-┼-┼-┼-┼-┼-┼-┼-┼-┼-┤\n");
             }
         }
         // Include the last row.
-        printout.append(" └─┴─┴─┴─┴─┴─┴─┴─┴─┴─┘\n");
+        printout.append(" └-┴-┴-┴-┴-┴-┴-┴-┴-┴-┘\n");
         return printout.toString();
     }
 }

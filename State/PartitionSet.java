@@ -277,16 +277,6 @@ public class PartitionSet {
                 move.getFromCol())), move, isMovingPlayerBlack);
     }
     
-    public void registerNewWhiteOwnedParts(ClientMove move, GenericSearchAI.FillingMoveSet fillingSet) {
-        Partition relevantPart = getContainingPartition(move.getFromIndex());
-        List<Partition> newParts = relevantPart.forkMove(move, false);
-        for (Partition part : newParts) {
-            if (part.getPartitionState() == PartitionState.WHITE_OWNED) {
-                fillingSet.addPartition(part);
-            }
-        }
-    }
-    
     public List<ClientMove> getPossibleContestedMoves(boolean isPlayerBlack) {
         List<ClientMove> moveList = new LinkedList<ClientMove>();
         for (Partition contestedPart : _contestedParts) {
@@ -365,5 +355,47 @@ public class PartitionSet {
             gen = printSet.forkNode(index, gen, currentStates.get(index));
         }
         return printSet.printGen(gen);
+    }
+    
+    public String getSummaryInfo() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("State: DEAD{");
+        boolean isFirst = true;
+        for (Partition part : _deadParts) {
+            if (!isFirst) {
+                builder.append(",");
+            }
+            builder.append(part.getFreeStates());
+            isFirst = false;
+        }
+        builder.append("} BLACK{");
+        isFirst = true;
+        for (Partition part : _blackOwnedParts) {
+            if (!isFirst) {
+                builder.append(",");
+            }
+            builder.append(part.getFreeStates());
+            isFirst = false;
+        }
+        builder.append("} WHITE{");
+        isFirst = true;
+        for (Partition part : _whiteOwnedParts) {
+            if (!isFirst) {
+                builder.append(",");
+            }
+            builder.append(part.getFreeStates());
+            isFirst = false;
+        }
+        builder.append("} CONTESTED{");
+        isFirst = true;
+        for (Partition part : _contestedParts) {
+            if (!isFirst) {
+                builder.append(",");
+            }
+            builder.append(part.getFreeStates());
+            isFirst = false;
+        }
+        builder.append("}");
+        return builder.toString();
     }
 }
