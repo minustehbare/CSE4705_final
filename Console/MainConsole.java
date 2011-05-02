@@ -154,6 +154,9 @@ public class MainConsole {
         } catch (ClientException e) {
             System.out.println(c.getLog());
             System.out.println("Client exception: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println(c.getLog());
+            System.out.println("General exception: " + e.getMessage());
         }
     }
     
