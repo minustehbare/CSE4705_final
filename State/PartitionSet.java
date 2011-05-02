@@ -14,6 +14,8 @@ public class PartitionSet {
     private final List<Partition> _whiteOwnedParts;
     private final List<Partition> _blackOwnedParts;
     private final List<Partition> _contestedParts;
+    public static final int SAVE_DEPTH = 3;
+
     
     public PartitionSet() {
         _deadParts = new LinkedList<Partition>();
@@ -21,7 +23,70 @@ public class PartitionSet {
         _blackOwnedParts = new LinkedList<Partition>();
         _contestedParts = new LinkedList<Partition>();
     }
-    
+
+    private String getFullName() {
+        Map<Integer, NodeState> currentStates = new HashMap<Integer, NodeState>();
+        for (Partition part : _deadParts) {
+            for (int i : part.getEnclosedSet()) {
+                currentStates.put(i, part.getNodeState(i));
+            }
+        }
+        for (Partition part : _whiteOwnedParts) {
+            for (int i : part.getEnclosedSet()) {
+                currentStates.put(i, part.getNodeState(i));
+            }
+        }
+        for (Partition part : _blackOwnedParts) {
+            for (int i : part.getEnclosedSet()) {
+                currentStates.put(i, part.getNodeState(i));
+            }
+        }
+        for (Partition part : _contestedParts) {
+            for (int i : part.getEnclosedSet()) {
+                currentStates.put(i, part.getNodeState(i));
+            }
+        }
+        NodeSet printSet = NodeSet.BLOCKED_NODE_SET;
+        int gen = 0;
+        for (int i : currentStates.keySet()) {
+            gen = printSet.forkNode(i, gen, currentStates.get(i));
+        }
+        //return printSet.printGen(gen);
+      StringBuilder ret = new StringBuilder();
+      for (int index = 0 ; index <= 99; index++) {
+        NodeState iState = printSet.getNodeState(index, gen, true);
+        if (!iState.equals(iState.BLOCKED)) {
+            if (index <= 9) {
+                ret.append(0);
+            }
+            ret.append(index);
+            if(iState.equals(iState.EMPTY))
+              ret.append('E');
+            else
+              ret.append(Node.stateToChar(iState));
+        }
+      }
+      return ret.toString();
+    }
+
+    public String getNamePrefix() {
+        String fullName = getFullName();
+        return fullName.substring(0,fullName.length() - (fullName.length() % SAVE_DEPTH));
+    }
+
+    public String getNameSuffix() {
+        String fullName = getFullName();
+        String suffix = fullName.substring(fullName.length() - (fullName.length() % SAVE_DEPTH));
+        
+        //if the suffix is empty, return a default suffix that will never normally show up.
+        //This allows me to parse it the data a little easier when reading from the
+        //file.  If you would rather me do this on my end, let me know.
+        if (suffix.length()==0)
+          return("xx");
+        
+        return suffix;
+    }
+
     public PartitionSet(Partition part) {
         this();
         addArbitraryPartition(part);
