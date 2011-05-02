@@ -306,7 +306,11 @@ public class GenericSearchAI extends PartitionBasedAI {
             // For each part set, launch a new call to evaluate it.
             List<MoveStore> currentStores = _threadStore;
             List<MoveStore> nextStores = new LinkedList<MoveStore>();
-            while (!Thread.currentThread().isInterrupted()) {
+            
+            int confirmedMoves = 0;
+            int pendingMoves = 0;
+            while (!Thread.currentThread().isInterrupted() &&
+                    !currentStores.isEmpty()) {
                 isBlackMoving = !isBlackMoving;
                 for (MoveStore currentStore : currentStores) {
                     if (Thread.currentThread().isInterrupted()) {
@@ -324,7 +328,7 @@ public class GenericSearchAI extends PartitionBasedAI {
                                     } else {
                                         for (ClientMove move : part.getPossibleMoves(queenIndex)) {
                                             if (Thread.currentThread().isInterrupted()) {
-                                                System.out.println("Pending moves (current level): " + nextMoves.size());
+                                                pendingMoves = nextMoves.size();
                                                 break;
                                             } else {
                                                 PartitionSet newPartSet =
@@ -361,8 +365,7 @@ public class GenericSearchAI extends PartitionBasedAI {
                     }
                 }
                 if (Thread.currentThread().isInterrupted()) {
-                    System.out.println("Confirmed moves (current level): "
-                            + nextStores.size());
+                    confirmedMoves = nextStores.size();
                     break;
                 } else {
                     currentStores = nextStores;
@@ -371,7 +374,7 @@ public class GenericSearchAI extends PartitionBasedAI {
                     _globalStore.waitForOtherThreads();
                 }
             }
-            System.out.println("Levels traversed: " + levelsTraversed);
+            System.out.println("Thread Report: " + levelsTraversed + "." + confirmedMoves + "." + pendingMoves);
         }
     }
 

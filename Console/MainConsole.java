@@ -133,9 +133,16 @@ public class MainConsole {
             c.LoginAndMatch(sai_username, sai_password, sai_opponent);
             // make the new AI
             ClientInterface iface;
+            BareAI ai;
             switch (sai_aitype) {
                 case RANDOM:
-                    RandomAI ai = new RandomAI(c.isBlack());
+                    ai = new RandomAI(c.isBlack());
+                    iface = ai.getInterface();
+                    break;
+                case SEARCH:
+                    Evaluator eval = new Heuristic();
+                    AITimer timer = new ExpectedScaleTimer(1.5);
+                    ai = new GenericSearchAI(c.isBlack(), eval, timer, 2, 5, false);
                     iface = ai.getInterface();
                     break;
                 default:
@@ -156,7 +163,7 @@ public class MainConsole {
             System.out.println("Client exception: " + e.getMessage());
         } catch (Exception e) {
             System.out.println(c.getLog());
-            System.out.println("General exception: " + e.getMessage());
+            System.out.println("General exception: " + e.getClass().toString() + ": " + e.getMessage());
         }
     }
     
@@ -257,8 +264,9 @@ public class MainConsole {
                 new Runnable() {
                     public void run() {
                         sai_aitype = AIType.SEARCH;
+                        singleAIGame_confirmPlay();
                     }
-                }, "single_ai_search_eval"));
+                }, "main")); // TODO - route this through the proper submenus!
         
         _menus.put("single_ai_select_server", singleAIMenu);
         _menus.put("single_ai_select_user", singleAIUser);
