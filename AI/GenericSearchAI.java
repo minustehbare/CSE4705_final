@@ -157,11 +157,28 @@ public class GenericSearchAI extends PartitionBasedAI {
             }
         }
         
+        final CyclicBarrier finishGameTreeBarrier = new CyclicBarrier(5);
+        
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    finishGameTreeBarrier.await();
+                } catch (InterruptedException e) {
+                    
+                } catch (BrokenBarrierException e) {
+                    
+                }
+                synchronized(_timerMutex) {
+                    _timerMutex.notifyAll();
+                }
+            }
+        }).start();
+        
         // Create threads.
-        Thread searchThread1 = new SearchThread(threadMoves1, initialStore);
-        Thread searchThread2 = new SearchThread(threadMoves2, initialStore);
-        Thread searchThread3 = new SearchThread(threadMoves3, initialStore);
-        Thread searchThread4 = new SearchThread(threadMoves4, initialStore);
+        Thread searchThread1 = new SearchThread(threadMoves1, initialStore, finishGameTreeBarrier);
+        Thread searchThread2 = new SearchThread(threadMoves2, initialStore, finishGameTreeBarrier);
+        Thread searchThread3 = new SearchThread(threadMoves3, initialStore, finishGameTreeBarrier);
+        Thread searchThread4 = new SearchThread(threadMoves4, initialStore, finishGameTreeBarrier);
         
         // Start threads.
         searchThread1.start();
@@ -283,14 +300,16 @@ public class GenericSearchAI extends PartitionBasedAI {
         private final InitialMoveStore _globalStore;
         private final List<AggregateMove> _threadMoves;
         private final List<MoveStore> _threadStore;
+        private final CyclicBarrier _barrier;
         
         int levelsTraversed = 0;
         
         public SearchThread(List<AggregateMove> threadMoves,
-                InitialMoveStore globalStore) {
+                InitialMoveStore globalStore, CyclicBarrier barrier) {
             _globalStore = globalStore;
             _threadMoves = threadMoves;
             _threadStore = new LinkedList<MoveStore>();
+            _barrier = barrier;
         }
         
         @Override
@@ -309,8 +328,17 @@ public class GenericSearchAI extends PartitionBasedAI {
             
             int confirmedMoves = 0;
             int pendingMoves = 0;
-            while (!Thread.currentThread().isInterrupted() &&
-                    !currentStores.isEmpty()) {
+            while (!Thread.currentThread().isInterrupted()) {
+                if (currentStores.isEmpty()) {
+                    try {
+                        _barrier.await();
+                    } catch (InterruptedException e) {
+                        
+                    } catch (BrokenBarrierException e) {
+                        
+                    }
+                    break;
+                }
                 isBlackMoving = !isBlackMoving;
                 for (MoveStore currentStore : currentStores) {
                     if (Thread.currentThread().isInterrupted()) {

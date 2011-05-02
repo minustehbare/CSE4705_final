@@ -141,7 +141,7 @@ public class MainConsole {
                     break;
                 case SEARCH:
                     Evaluator eval = new Heuristic();
-                    AITimer timer = new ExpectedScaleTimer(1.5);
+                    AITimer timer = new ExpectedScaleTimer(2);
                     ai = new GenericSearchAI(c.isBlack(), eval, timer, 2, 5, false);
                     iface = ai.getInterface();
                     break;
