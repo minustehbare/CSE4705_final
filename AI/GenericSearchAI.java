@@ -16,6 +16,7 @@ public class GenericSearchAI extends PartitionBasedAI {
     
     protected Evaluator _scorer;
     protected AITimer _timer;
+    protected final FillingMoveSet _fillingSet;
     protected int _initialSearchWidth;
     protected int _searchWidth;
     protected boolean _syncThreads;
@@ -34,6 +35,7 @@ public class GenericSearchAI extends PartitionBasedAI {
         _initialSearchWidth = searchWidth;
         _syncThreads = syncThreads;
         _timer = timer;
+        _fillingSet = new FillingMoveSet();
     }
     
     public GenericSearchAI(boolean isPlayerBlack, Evaluator scorer, AITimer timer,
@@ -44,6 +46,7 @@ public class GenericSearchAI extends PartitionBasedAI {
         _initialSearchWidth = initialSearchWidth;
         _syncThreads = syncThreads;
         _timer = timer;
+        _fillingSet = new FillingMoveSet();
     }
     
     public void switchEvaluator(Evaluator newEval) {
@@ -62,6 +65,16 @@ public class GenericSearchAI extends PartitionBasedAI {
         synchronized (_stateMutex) {
             _initialSearchWidth = newWidth;
         }
+    }
+    
+    @Override
+    protected void startIdling() {
+        _fillingSet.startCalculating();
+    }
+    
+    @Override
+    protected void stopIdling() {
+        _fillingSet.pauseCalculating();
     }
     
     @Override
@@ -217,11 +230,14 @@ public class GenericSearchAI extends PartitionBasedAI {
         System.out.println("Winning move: " +
                 bestMove.getMove().getSendingPrintout() + " [" +
                 bestMove.getValue() + "]");
-        return bestMove.getMove();
+        
+        ClientMove m = bestMove.getMove();
+        _currentSet.registerNewWhiteOwnedParts(m, _fillingSet);
+        return m;
     }
     
     protected ClientMove getPlayerMoveFilling(int timeRemaining) {
-        throw new RuntimeException("Filling is not yet implemented.");
+        return _fillingSet.getMove();
     }
     
     protected class AggregateMove implements Comparable<AggregateMove> {
@@ -571,6 +587,163 @@ public class GenericSearchAI extends PartitionBasedAI {
                         return _currentValues.first();
                     } else {
                         return _currentValues.last();
+                    }
+                }
+            }
+        }
+    }
+    
+    public class FillingMoveSet {
+        private final Object _threadControlMutex = new Object();
+        
+        private final List<FillingMoveStore> _stores;
+        
+        private List<ClientMove> _currentList;
+        
+        public FillingMoveSet() {
+            _stores = new LinkedList<FillingMoveStore>();
+            _currentList = new LinkedList<ClientMove>();
+        }
+        
+        public void addPartition(Partition part) {
+            _stores.add(new FillingMoveStore(part));
+        }
+        
+        public void startCalculating() {
+            synchronized (_threadControlMutex) {
+                for (FillingMoveStore store : _stores) {
+                    store.startCalculating();
+                }
+            }
+        }
+        
+        public void pauseCalculating() {
+            synchronized (_threadControlMutex) {
+                for (FillingMoveStore store : _stores) {
+                    store.pauseCalculating();
+                }
+            }
+        }
+        
+        public ClientMove getMove() {
+            if (_stores.isEmpty()) {
+                throw new RuntimeException("No more stores to get moves from!");
+            } else if (_currentList.isEmpty()) {
+                FillingMoveStore selectedStore = null;
+                // try to see if any are complete.
+                for (FillingMoveStore store : _stores) {
+                    if (store.isComplete()) {
+                        selectedStore = store;
+                        break;
+                    }
+                }
+                if (selectedStore == null) {
+                    selectedStore = _stores.get(0);
+                }
+                _currentList = selectedStore.getBestMoves();
+                return getMove();
+            } else {
+                ClientMove nextMove = _currentList.remove(0);
+                return nextMove;
+            }
+        }
+    }
+    
+    private class FillingMoveStore {
+        private final PartitionSet _baseSet;
+        private boolean _isComplete;
+        private Thread _fillingMoveRunner;
+        private final int _optimalDepth;
+        
+        private List<ClientMove> _bestMoves;
+        private Stack<ClientMove> _currentMoves;
+        private Stack<PartitionSet> _currentStates;
+        private Stack<Stack<ClientMove>> _potentialMoves;
+        
+        public FillingMoveStore(Partition basePart) {
+            _baseSet = new PartitionSet(basePart);
+            _isComplete = false;
+            _optimalDepth = basePart.getFreeStates();
+            _bestMoves = new LinkedList<ClientMove>();
+            _currentMoves = new Stack<ClientMove>();
+            _currentStates = new Stack<PartitionSet>();
+            _potentialMoves = new Stack<Stack<ClientMove>>();
+            _currentStates.push(_baseSet);
+            _potentialMoves.push(getAllPossibleMoves(_baseSet));
+            _fillingMoveRunner = new Thread(new Runnable() {
+                public void run() {
+                    if (!_isComplete) {
+                        calculateFillingMoves();
+                    }
+                }
+            });
+        }
+        
+        public List<ClientMove> getBestMoves() {
+            if (_isComplete) {
+                return _bestMoves;
+            } else {
+                calculateFillingMoves();
+                return _bestMoves;
+            }
+        }
+        
+        public boolean isComplete() {
+            return _isComplete;
+        }
+        
+        public void startCalculating() {
+            _fillingMoveRunner.start();
+        }
+        
+        public void pauseCalculating() {
+            _fillingMoveRunner.interrupt();
+        }
+        
+        private Stack<ClientMove> getAllPossibleMoves(PartitionSet partSet) {
+            // Assume only white owned partitions are available.
+            Stack<ClientMove> possibleMoves = new Stack<ClientMove>();
+            for (Partition part : partSet.getWhiteOwnedParts()) {
+                for (int queenIndex : part.getWhiteQueens()) {
+                    possibleMoves.addAll(part.getPossibleMoves(queenIndex));
+                }
+            }
+            return possibleMoves;
+        }
+        
+        private void calculateFillingMoves() {
+            while (true) {
+                // if interrupted, exit.
+                if (Thread.currentThread().isInterrupted()) {
+                    break;
+                } else if (_currentStates.empty()) {
+                    // no more moves to check - we're done.
+                    _isComplete = true;
+                    break;
+                } else if (_potentialMoves.peek().empty()){
+                    // if there are no possible moves in this path...
+                    // then discard it.
+                    _potentialMoves.pop();
+                    _currentStates.pop();
+                    _currentMoves.pop();
+                } else {
+                    // get a move.
+                    ClientMove potentialMove = _potentialMoves.peek().pop();
+                    // fork the partition.
+                    PartitionSet newSet = _currentStates.peek().forkPartitionSet(potentialMove, false);
+                    // get a list of moves in this new partition.
+                    Stack<ClientMove> newMoves = getAllPossibleMoves(newSet);
+                    // Push everything.
+                    _currentStates.push(newSet);
+                    _potentialMoves.push(newMoves);
+                    _currentMoves.add(potentialMove);
+                    // Check to see if this is the best.
+                    if (_currentMoves.size() > _bestMoves.size()) {
+                        _bestMoves = new LinkedList(_currentMoves);
+                        if (_bestMoves.size() == _optimalDepth) {
+                            _isComplete = true;
+                            break;
+                        }
                     }
                 }
             }

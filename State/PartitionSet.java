@@ -1,5 +1,6 @@
 package CSE4705_final.State;
 
+import CSE4705_final.AI.GenericSearchAI;
 import java.util.*;
 
 import CSE4705_final.Client.ClientMove;
@@ -274,6 +275,16 @@ public class PartitionSet {
     public PartitionSet forkPartitionSet(ClientMove move, boolean isMovingPlayerBlack) {
         return forkPartitionSet(getContainingPartition(Node.getIndex(move.getFromRow(),
                 move.getFromCol())), move, isMovingPlayerBlack);
+    }
+    
+    public void registerNewWhiteOwnedParts(ClientMove move, GenericSearchAI.FillingMoveSet fillingSet) {
+        Partition relevantPart = getContainingPartition(move.getFromIndex());
+        List<Partition> newParts = relevantPart.forkMove(move, false);
+        for (Partition part : newParts) {
+            if (part.getPartitionState() == PartitionState.WHITE_OWNED) {
+                fillingSet.addPartition(part);
+            }
+        }
     }
     
     public List<ClientMove> getPossibleContestedMoves(boolean isPlayerBlack) {
