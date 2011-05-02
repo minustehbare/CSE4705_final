@@ -641,14 +641,15 @@ public class GenericSearchAI extends PartitionBasedAI {
                 for (FillingMoveStore store : _stores) {
                     if (store.isComplete()) {
                         selectedStore = store;
+                        _currentList = selectedStore.getBestMoves();
                         break;
                     }
                 }
                 if (selectedStore == null) {
                     selectedStore = _stores.get(0);
+                    _currentList = selectedStore.getBestMovesSoFar();
                 }
                 _stores.remove(selectedStore);
-                _currentList = selectedStore.getBestMoves();
                 if (_currentList.isEmpty()) {
                     throw new RuntimeException("This store has an empty list of moves...?");
                 } else {

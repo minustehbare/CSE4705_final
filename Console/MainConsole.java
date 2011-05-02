@@ -327,8 +327,8 @@ public class MainConsole {
                             c.LoginAndMatch(DEFAULT_USER_TWO, DEFAULT_PASSWORD_TWO, DEFAULT_USER_ONE);
                             // make the new AI
                             Evaluator eval = new BasicEvaluator(650, 150, 350, -650, -150, -350);
-                            AITimer timer = new ExpectedScaleTimer(2);
-//                            AITimer timer = new ConstantTimer(2000);
+//                            AITimer timer = new ExpectedScaleTimer(2);
+                            AITimer timer = new ConstantTimer(2000);
                             BareAI ai = new GenericSearchAI(c.isBlack(), eval, timer, 2, 5, false);
                             ClientInterface iface = ai.getInterface();
                             boolean weWon = c.Play(iface);

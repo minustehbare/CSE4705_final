@@ -26,10 +26,10 @@ public abstract class PartitionBasedAI extends BareAI {
     protected final ClientMove getPlayerMoveAbstract(int timeRemaining) {
         // Stop idling.
         stopIdling();
-        ClientMove move = getPlayerMove(timeRemaining);
-        _currentSet = _currentSet.forkPartitionSet(move, false).isolate();
         System.out.println(_currentSet.getSummaryInfo());
         System.out.println(_currentSet.getPrintout());
+        ClientMove move = getPlayerMove(timeRemaining);
+        _currentSet = _currentSet.forkPartitionSet(move, false).isolate();
         // Start idling.
         startIdling();
         return move;
