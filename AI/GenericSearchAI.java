@@ -145,6 +145,10 @@ public class GenericSearchAI extends PartitionBasedAI {
         final InitialMoveStore initialStore = new InitialMoveStore();
         // Create a sorted list of all moves.
         List<AggregateMove> allMoves = new ArrayList<AggregateMove>(scoredMoves);
+        // If there are no moves, delegate to the filler.
+        if (allMoves.isEmpty()) {
+            return getPlayerMoveFilling(timeRemaining);
+        }
         
         // Sort the moves into 4 lists.
         List<AggregateMove> threadMoves1 = new LinkedList<AggregateMove>();
@@ -153,7 +157,7 @@ public class GenericSearchAI extends PartitionBasedAI {
         List<AggregateMove> threadMoves4 = new LinkedList<AggregateMove>();
         {
             int assignment = 0;
-            for (int i = 1; i <= _initialSearchWidth; i++) {
+            for (int i = 1; (i <= _initialSearchWidth) && (i < allMoves.size()); i++) {
                 AggregateMove placementMove = allMoves.get(allMoves.size() - i);
                 initialStore.addMove(allMoves.get(allMoves.size() - i));
                 switch (assignment) {
@@ -643,8 +647,13 @@ public class GenericSearchAI extends PartitionBasedAI {
                 if (selectedStore == null) {
                     selectedStore = _stores.get(0);
                 }
+                _stores.remove(selectedStore);
                 _currentList = selectedStore.getBestMoves();
-                return getMove();
+                if (_currentList.isEmpty()) {
+                    throw new RuntimeException("This store has an empty list of moves...?");
+                } else {
+                    return getMove();
+                }
             } else {
                 ClientMove nextMove = _currentList.remove(0);
                 return nextMove;
@@ -700,6 +709,40 @@ public class GenericSearchAI extends PartitionBasedAI {
                 return _bestMoves;
             } else {
                 calculateFillingMoves();
+                return _bestMoves;
+            }
+        }
+        
+        public List<ClientMove> getBestMovesSoFar() {
+            if (_isComplete) {
+                return _bestMoves;
+            } else {
+                // allow 10000 ms to compute.
+                _fillingMoveRunner = new Thread(new Runnable() {
+                    public void run() {
+                        if (!_isComplete) {
+                            calculateFillingMoves();
+                        }
+                    }
+                });
+                _fillingMoveRunner.start();
+                
+                final Object tempMutex = new Object();
+                synchronized (tempMutex) {
+                    try {
+                        tempMutex.wait(10000);
+                    } catch (InterruptedException e) {
+                        
+                    }
+                }
+                _fillingMoveRunner.interrupt();
+                try {
+                    _fillingMoveRunner.join();
+                } catch (InterruptedException e) {
+                    
+                }
+                
+                _isComplete = true;
                 return _bestMoves;
             }
         }

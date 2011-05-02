@@ -20,7 +20,8 @@ public class MainConsole {
     private static final int DEFAULT_PORT = 3499;
     private final static String DEFAULT_USER_ONE = "5";
     private final static String DEFAULT_USER_TWO = "6";
-    private final static String DEFAULT_PASSWORD = "733167";
+    private final static String DEFAULT_PASSWORD_ONE = "733167";
+    private final static String DEFAULT_PASSWORD_TWO = "431349";
     private final static String DEFAULT_OPPONENT = "0";
 
     private static final String _mainMenu = "main";
@@ -85,12 +86,12 @@ public class MainConsole {
     
     private static void singleAIGame_setDefaultUser() {
         sai_username = DEFAULT_USER_ONE;
-        sai_password = DEFAULT_PASSWORD;
+        sai_password = DEFAULT_PASSWORD_ONE;
     }
     
     private static void singleAIGame_setAlternateUser() {
         sai_username = DEFAULT_USER_TWO;
-        sai_password = DEFAULT_PASSWORD;
+        sai_password = DEFAULT_PASSWORD_TWO;
     }
     
     private static void singleAIGame_setCustomUser() {
@@ -193,8 +194,8 @@ public class MainConsole {
         final String defaultServerInfo = "The default server info is:\n\nHostname: " + DEFAULT_HOSTNAME + "\nPort:     " + DEFAULT_PORT;
         final String customServerInfo = "Allows you to specify the hostname and port of an Amazons server.";
         
-        final String defaultUserInfo = "The default user info is:\n\nUser ID:  " + DEFAULT_USER_ONE + "\nPassword: " + DEFAULT_PASSWORD;
-        final String alternateUserInfo = "The alternate user info is:\n\nUser ID:  " + DEFAULT_USER_TWO + "\nPassword: " + DEFAULT_PASSWORD;
+        final String defaultUserInfo = "The default user info is:\n\nUser ID:  " + DEFAULT_USER_ONE + "\nPassword: " + DEFAULT_PASSWORD_ONE;
+        final String alternateUserInfo = "The alternate user info is:\n\nUser ID:  " + DEFAULT_USER_TWO + "\nPassword: " + DEFAULT_PASSWORD_ONE;
         final String customUserInfo = "This allows you to specify a custom user ID and a custom password to play on the selected server.";
         
         ConsoleMenu singleAIMenu = new ConsoleMenu("Single AI Menu - Select Server");
@@ -295,6 +296,54 @@ public class MainConsole {
         miscMenu.addOption(new ConsoleOption("Test NodeSet printout", "Prints a test printout to the console", new Runnable() {
             public void run() {
               //  NodeSet.main(new String[0]);
+            }
+        }, "misc"));
+        miscMenu.addOption(new ConsoleOption("Test Search vs. Random", "Tests the search AI vs. the random AI", new Runnable() {
+            
+            public void run () {
+                new Thread(new Runnable() {
+                    public void run() {
+                        
+                        Client c = new Client();
+                        try {
+                            c.Connect(DEFAULT_HOSTNAME, DEFAULT_PORT);
+                            c.LoginAndMatch(DEFAULT_USER_ONE, DEFAULT_PASSWORD_ONE, DEFAULT_USER_TWO);
+                            // make the new AI
+                            BareAI ai = new RandomAI(c.isBlack());
+                            ClientInterface iface = ai.getInterface();
+                            c.Play(iface);
+                        } catch (ClientException e) {
+                            
+                        }
+                    }
+                }).start();
+                new Thread(new Runnable() {
+                    public void run() {
+                        
+                        Client c = new Client();
+                        try {
+                            c.enableLog();
+                            c.Connect(DEFAULT_HOSTNAME, DEFAULT_PORT);
+                            c.LoginAndMatch(DEFAULT_USER_TWO, DEFAULT_PASSWORD_TWO, DEFAULT_USER_ONE);
+                            // make the new AI
+                            Evaluator eval = new BasicEvaluator(650, 150, 350, -650, -150, -350);
+                            AITimer timer = new ExpectedScaleTimer(2);
+//                            AITimer timer = new ConstantTimer(2000);
+                            BareAI ai = new GenericSearchAI(c.isBlack(), eval, timer, 2, 5, false);
+                            ClientInterface iface = ai.getInterface();
+                            boolean weWon = c.Play(iface);
+                            System.out.println(c.getLog());
+                            if (weWon) {
+                                System.out.println("We won!");
+                            } else {
+                                System.out.println("We lost :(");
+                            }
+                        } catch (ClientException e) {
+                            System.out.println(c.getLog());
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }).start();
             }
         }, "misc"));
         

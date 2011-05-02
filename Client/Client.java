@@ -222,6 +222,10 @@ public class Client {
             } catch (IOException e) {
                 _state = ClientState.Error;
                 throw new ClientException("General IO failure");
+            } catch (NullPointerException e) {
+                if (_enableLog) {
+                    System.out.println(getLog());
+                }
             }
         } else {
             throw new ClientException("Attempted to call LoginAndMatch() when state wasn't Connected.");
